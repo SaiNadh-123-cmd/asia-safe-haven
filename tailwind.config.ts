@@ -52,6 +52,25 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Safety status colors
+				safe: {
+					DEFAULT: 'hsl(var(--safe))',
+					foreground: 'hsl(var(--safe-foreground))'
+				},
+				caution: {
+					DEFAULT: 'hsl(var(--caution))',
+					foreground: 'hsl(var(--caution-foreground))'
+				},
+				danger: {
+					DEFAULT: 'hsl(var(--danger))',
+					foreground: 'hsl(var(--danger-foreground))'
+				},
+				// Disaster type colors
+				flood: 'hsl(var(--flood))',
+				earthquake: 'hsl(var(--earthquake))',
+				cyclone: 'hsl(var(--cyclone))',
+				heatwave: 'hsl(var(--heatwave))',
+				tsunami: 'hsl(var(--tsunami))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -67,6 +86,19 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			backgroundImage: {
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-safe': 'var(--gradient-safe)',
+				'gradient-caution': 'var(--gradient-caution)',
+				'gradient-danger': 'var(--gradient-danger)'
+			},
+			boxShadow: {
+				'glow': 'var(--shadow-glow)',
+				'danger': 'var(--shadow-danger)'
+			},
+			transitionProperty: {
+				'smooth': 'var(--transition-smooth)'
 			},
 			keyframes: {
 				'accordion-down': {

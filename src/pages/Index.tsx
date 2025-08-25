@@ -1,13 +1,40 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from "react";
+import { Dashboard } from "@/components/Dashboard";
+import { LocationSelector } from "@/components/LocationSelector";
 
 const Index = () => {
+  const [userLocation, setUserLocation] = useState<string>("");
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
+
+  // Check for saved location on mount
+  useEffect(() => {
+    const savedLocation = localStorage.getItem("disasterAlert_location");
+    if (savedLocation) {
+      setUserLocation(savedLocation);
+    } else {
+      setShowLocationSelector(true);
+    }
+  }, []);
+
+  const handleLocationSelect = (location: string) => {
+    setUserLocation(location);
+    localStorage.setItem("disasterAlert_location", location);
+    setShowLocationSelector(false);
+  };
+
+  const handleLocationChange = () => {
+    setShowLocationSelector(true);
+  };
+
+  if (showLocationSelector || !userLocation) {
+    return <LocationSelector onLocationSelect={handleLocationSelect} />;
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Dashboard 
+      userLocation={userLocation} 
+      onLocationChange={handleLocationChange}
+    />
   );
 };
 
