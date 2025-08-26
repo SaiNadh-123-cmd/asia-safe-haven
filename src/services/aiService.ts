@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 class AIService {
@@ -28,8 +29,15 @@ class AIService {
     try {
       console.log(`Calling stories API for ${disaster} in ${location}`);
       
+      // Add timestamp to prevent caching and ensure fresh generation
+      const timestamp = Date.now();
       const { data, error } = await supabase.functions.invoke('generate-stories', {
-        body: { disaster, location }
+        body: { 
+          disaster, 
+          location,
+          timestamp,
+          requestId: `story-${disaster}-${location}-${timestamp}`
+        }
       });
 
       if (error) {
@@ -38,13 +46,24 @@ class AIService {
       }
 
       console.log('Stories response:', data);
-      return data.story || this.getFallbackStory(disaster, location);
+      
+      // Ensure we have a valid story response
+      if (!data || !data.story) {
+        console.warn('No story in response, using fallback');
+        return this.getFallbackStory(disaster, location);
+      }
+
+      // Log the source to track AI vs fallback usage
+      if (data.source) {
+        console.log(`Story source: ${data.source}`);
+      }
+
+      return data.story;
     } catch (error) {
       console.error('Error calling stories function:', error);
       return this.getFallbackStory(disaster, location);
     }
   }
-
 
   private getFallbackPrecautions(disaster: string): string[] {
     const fallbacks: { [key: string]: string[] } = {
@@ -89,15 +108,40 @@ class AIService {
   }
 
   private getFallbackStory(disaster: string, location: string): string {
-    const stories: { [key: string]: string } = {
-      flood: `During the devastating floods in ${location}, residents helped each other by forming human chains to evacuate elderly people. They used boats and makeshift rafts to rescue families trapped on rooftops. The community center became a safe haven where everyone shared food and supplies while waiting for rescue teams.`,
-      earthquake: `When the earthquake struck ${location}, quick-thinking residents immediately took cover under sturdy desks and tables. After the shaking stopped, they carefully evacuated buildings and gathered in open areas. Neighbors helped locate missing people and provided first aid to the injured until emergency services arrived.`,
-      cyclone: `As the cyclone approached ${location}, families secured their homes and moved to designated shelter areas. They brought essential supplies and helped elderly residents reach safety. Throughout the storm, people stayed together, sharing resources and keeping spirits up until the danger passed.`,
-      heatwave: `During the extreme heatwave in ${location}, communities opened cooling centers and distributed water to vulnerable residents. People checked on their neighbors regularly and shared ice and cool drinks. Many lives were saved through collective care and early warning systems.`,
-      tsunami: `When the tsunami warning sounded in ${location}, residents immediately moved to higher ground. Local fishermen used their knowledge to guide tourists to safety. The quick evacuation and community cooperation helped minimize casualties as everyone worked together to reach designated safe zones.`
+    // Dynamic fallback stories with location and disaster-specific content
+    const stories: { [key: string]: string[] } = {
+      flood: [
+        `During the devastating floods in ${location}, residents helped each other by forming human chains to evacuate elderly people. They used boats and makeshift rafts to rescue families trapped on rooftops. The community center became a safe haven where everyone shared food and supplies while waiting for rescue teams.`,
+        `When flood waters rose in ${location}, local volunteers organized boat rescues for stranded families. Neighbors opened their higher-floor homes as temporary shelters, while community leaders coordinated with emergency services. Their quick thinking and cooperation saved many lives.`,
+        `The unexpected flooding in ${location} brought out incredible community spirit. Residents with boats immediately began rescue operations, while others prepared emergency shelters. The coordinated effort and willingness to help strangers made all the difference during the crisis.`
+      ],
+      earthquake: [
+        `When the earthquake struck ${location}, quick-thinking residents immediately took cover under sturdy desks and tables. After the shaking stopped, they carefully evacuated buildings and gathered in open areas. Neighbors helped locate missing people and provided first aid to the injured until emergency services arrived.`,
+        `During the powerful earthquake in ${location}, the community's preparedness training proved invaluable. Residents followed safety protocols, then quickly organized search and rescue teams. Their knowledge of the local area helped professional rescuers locate trapped individuals efficiently.`,
+        `The earthquake in ${location} tested everyone's resolve, but the community responded with remarkable courage. Trained volunteers helped guide evacuations while others provided medical assistance. Their coordinated response and mutual support helped minimize casualties.`
+      ],
+      cyclone: [
+        `As the cyclone approached ${location}, families secured their homes and moved to designated shelter areas. They brought essential supplies and helped elderly residents reach safety. Throughout the storm, people stayed together, sharing resources and keeping spirits up until the danger passed.`,
+        `When the cyclone hit ${location}, the community's emergency plan swung into action. Residents evacuated to reinforced buildings while volunteers ensured everyone had food and water. The storm was fierce, but their preparation and teamwork kept everyone safe.`,
+        `The cyclone threatening ${location} saw an incredible display of community cooperation. Neighbors helped board up windows and secure property before moving to shelters together. Their advance planning and mutual support helped everyone weather the storm safely.`
+      ],
+      heatwave: [
+        `During the extreme heatwave in ${location}, communities opened cooling centers and distributed water to vulnerable residents. People checked on their neighbors regularly and shared ice and cool drinks. Many lives were saved through collective care and early warning systems.`,
+        `The severe heat in ${location} prompted neighbors to create informal cooling networks. Those with air conditioning welcomed others, while volunteers delivered water to elderly residents. The community's care for its most vulnerable members prevented heat-related tragedies.`,
+        `When temperatures soared in ${location}, residents organized to protect each other from the heat. Community centers became cooling refuges while volunteers made regular wellness checks. The collective response and shared resources helped everyone survive the dangerous conditions.`
+      ],
+      tsunami: [
+        `When the tsunami warning sounded in ${location}, residents immediately moved to higher ground. Local fishermen used their knowledge to guide tourists to safety. The quick evacuation and community cooperation helped minimize casualties as everyone worked together to reach designated safe zones.`,
+        `The tsunami threat to ${location} activated well-rehearsed evacuation procedures. Community leaders coordinated transport for those unable to walk while residents helped visitors understand the urgency. Everyone reached safety zones well before the waves could arrive.`,
+        `During the tsunami evacuation in ${location}, the community's preparedness and mutual aid shone through. Coastal residents guided others to evacuation routes while emergency coordinators ensured no one was left behind. Their practiced response and teamwork saved lives.`
+      ]
     };
     
-    return stories[disaster.toLowerCase()] || stories.flood;
+    // Select story based on disaster type and add some variation
+    const disasterStories = stories[disaster.toLowerCase()] || stories.flood;
+    const storyIndex = Math.abs(location.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % disasterStories.length;
+    
+    return disasterStories[storyIndex];
   }
 }
 

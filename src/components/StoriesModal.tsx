@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -24,23 +25,28 @@ interface StoriesModalProps {
 export const StoriesModal = ({ isOpen, onClose, disaster, location }: StoriesModalProps) => {
   const [story, setStory] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [storyId, setStoryId] = useState<string>("");
   const disasterInfo = getDisasterInfo(disaster);
 
   const generateStory = async () => {
     setIsLoading(true);
     try {
+      console.log(`Generating fresh story for ${disaster} in ${location}`);
       const generated = await aiService.generateStory(disaster, location);
       setStory(generated);
+      setStoryId(`${disaster}-${location}-${Date.now()}`); // Unique ID for each story
     } catch (error) {
       console.error('Error generating story:', error);
-      setStory("");
+      setStory("Unable to generate story at this time. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen && !story) {
+    if (isOpen) {
+      // Always generate a fresh story when modal opens
+      setStory(""); // Clear previous story
       generateStory();
     }
   }, [isOpen, disaster, location]);
@@ -56,7 +62,7 @@ export const StoriesModal = ({ isOpen, onClose, disaster, location }: StoriesMod
                 Survival Stories: {disasterInfo.name}
               </DialogTitle>
               <DialogDescription>
-                Real-inspired stories of resilience and survival
+                AI-generated stories based on historical patterns from {location}
               </DialogDescription>
             </div>
           </div>
@@ -85,7 +91,7 @@ export const StoriesModal = ({ isOpen, onClose, disaster, location }: StoriesMod
             <div className="text-center py-12">
               <div className="inline-flex items-center gap-2 text-muted-foreground">
                 <RefreshCw className="h-5 w-5 animate-spin" />
-                Generating inspiring survival story...
+                Generating inspiring survival story for {disaster} in {location}...
               </div>
             </div>
           ) : (
@@ -93,7 +99,7 @@ export const StoriesModal = ({ isOpen, onClose, disaster, location }: StoriesMod
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Users className="h-5 w-5 text-primary" />
-                  Community Resilience Story
+                  Community Resilience Story - {location}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -102,6 +108,11 @@ export const StoriesModal = ({ isOpen, onClose, disaster, location }: StoriesMod
                     <p className="text-foreground leading-relaxed whitespace-pre-line">
                       {story}
                     </p>
+                    {storyId && (
+                      <div className="mt-4 text-xs text-muted-foreground border-t pt-2">
+                        Story ID: {storyId} | Disaster: {disaster} | Location: {location}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -123,11 +134,11 @@ export const StoriesModal = ({ isOpen, onClose, disaster, location }: StoriesMod
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
             <div className="flex items-center gap-2 text-primary font-medium mb-2">
               <Heart className="h-4 w-4" />
-              Stories of Hope
+              AI-Generated Content Disclaimer
             </div>
             <p className="text-sm text-muted-foreground">
-              These stories are AI-generated based on historical events and survival accounts. 
-              They aim to inspire preparedness and highlight human resilience in the face of natural disasters.
+              These stories are AI-generated based on historical disaster patterns and survival accounts from {location} and similar regions. 
+              They aim to inspire preparedness and highlight human resilience. Each story is uniquely generated and may vary with each request.
             </p>
           </div>
 
