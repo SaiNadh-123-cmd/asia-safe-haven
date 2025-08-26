@@ -51,14 +51,6 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
     disaster: 'flood' as DisasterType 
   });
 
-  // Initialize AI service
-  useEffect(() => {
-    aiService.initialize().then(() => {
-      console.log('AI service initialized');
-    }).catch(error => {
-      console.warn('AI service initialization failed:', error);
-    });
-  }, []);
 
   // Monitor online status
   useEffect(() => {

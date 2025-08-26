@@ -1,120 +1,50 @@
-import { pipeline } from '@huggingface/transformers';
+import { supabase } from '@/integrations/supabase/client';
 
 class AIService {
-  private precautionPipeline: any = null;
-  private storyPipeline: any = null;
-  private isInitialized = false;
-
-  async initialize() {
-    if (this.isInitialized) return;
-    
-    try {
-      // Initialize lightweight text generation pipeline
-      console.log('Initializing AI models...');
-      
-      // Use a lightweight model that works well in browsers
-      this.precautionPipeline = await pipeline(
-        'text-generation',
-        'onnx-community/gpt2',
-        { device: 'webgpu' }
-      );
-      
-      this.storyPipeline = await pipeline(
-        'text-generation', 
-        'onnx-community/gpt2',
-        { device: 'webgpu' }
-      );
-      
-      this.isInitialized = true;
-      console.log('AI models initialized successfully');
-    } catch (error) {
-      console.warn('Failed to initialize WebGPU models, falling back to CPU:', error);
-      // Fallback to CPU if WebGPU fails
-      try {
-        this.precautionPipeline = await pipeline('text-generation', 'onnx-community/gpt2');
-        this.storyPipeline = await pipeline('text-generation', 'onnx-community/gpt2');
-        this.isInitialized = true;
-      } catch (fallbackError) {
-        console.error('Failed to initialize AI models:', fallbackError);
-        // Use mock responses if models fail to load
-        this.isInitialized = false;
-      }
-    }
-  }
+  private isInitialized = true; // Always ready since we use Edge Functions
 
   async generatePrecautions(disaster: string, location: string): Promise<string[]> {
-    if (!this.isInitialized || !this.precautionPipeline) {
-      await this.initialize();
-    }
-    
-    if (!this.precautionPipeline) {
-      // Return fallback precautions
-      return this.getFallbackPrecautions(disaster);
-    }
-
     try {
-      const prompt = `Essential safety precautions for ${disaster} in ${location}:\n1.`;
+      console.log(`Calling precautions API for ${disaster} in ${location}`);
       
-      const result = await this.precautionPipeline(prompt, {
-        max_new_tokens: 150,
-        temperature: 0.7,
-        do_sample: true,
-        num_return_sequences: 1
+      const { data, error } = await supabase.functions.invoke('generate-precautions', {
+        body: { disaster, location }
       });
 
-      const generated = Array.isArray(result) ? result[0].generated_text : result.generated_text;
-      const precautions = this.extractPrecautions(generated, prompt);
-      
-      return precautions.length > 0 ? precautions : this.getFallbackPrecautions(disaster);
+      if (error) {
+        console.error('Supabase function error:', error);
+        return this.getFallbackPrecautions(disaster);
+      }
+
+      console.log('Precautions response:', data);
+      return data.precautions || this.getFallbackPrecautions(disaster);
     } catch (error) {
-      console.error('Error generating precautions:', error);
+      console.error('Error calling precautions function:', error);
       return this.getFallbackPrecautions(disaster);
     }
   }
 
   async generateStory(disaster: string, location: string): Promise<string> {
-    if (!this.isInitialized || !this.storyPipeline) {
-      await this.initialize();
-    }
-    
-    if (!this.storyPipeline) {
-      return this.getFallbackStory(disaster, location);
-    }
-
     try {
-      const prompt = `A survivor's story: During the ${disaster} in ${location}, people escaped by`;
+      console.log(`Calling stories API for ${disaster} in ${location}`);
       
-      const result = await this.storyPipeline(prompt, {
-        max_new_tokens: 200,
-        temperature: 0.8,
-        do_sample: true,
-        num_return_sequences: 1
+      const { data, error } = await supabase.functions.invoke('generate-stories', {
+        body: { disaster, location }
       });
 
-      const generated = Array.isArray(result) ? result[0].generated_text : result.generated_text;
-      const story = generated.replace(prompt, '').trim();
-      
-      return story || this.getFallbackStory(disaster, location);
+      if (error) {
+        console.error('Supabase function error:', error);
+        return this.getFallbackStory(disaster, location);
+      }
+
+      console.log('Stories response:', data);
+      return data.story || this.getFallbackStory(disaster, location);
     } catch (error) {
-      console.error('Error generating story:', error);
+      console.error('Error calling stories function:', error);
       return this.getFallbackStory(disaster, location);
     }
   }
 
-  private extractPrecautions(text: string, prompt: string): string[] {
-    const content = text.replace(prompt, '').trim();
-    const lines = content.split('\n').filter(line => line.trim().length > 0);
-    
-    const precautions: string[] = [];
-    lines.forEach(line => {
-      const cleaned = line.replace(/^\d+\.?\s*/, '').replace(/^[-•]\s*/, '').trim();
-      if (cleaned.length > 10 && cleaned.length < 150) {
-        precautions.push(cleaned);
-      }
-    });
-    
-    return precautions.slice(0, 5);
-  }
 
   private getFallbackPrecautions(disaster: string): string[] {
     const fallbacks: { [key: string]: string[] } = {
