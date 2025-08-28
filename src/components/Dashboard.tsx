@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SafetyStatus } from "./SafetyStatus";
+import { WeatherStats } from "./WeatherStats";
 import { AlertCard } from "./AlertCard";
 import { DisasterGrid } from "./DisasterGrid";
 import { PrecautionsModal } from "./PrecautionsModal";
 import { StoriesModal } from "./StoriesModal";
 import { DisasterDetailsModal } from "./DisasterDetailsModal";
 import { DisasterType } from "./DisasterIcon";
-import { weatherService, WeatherData, DisasterAlert } from "@/services/weatherService";
+import { enhancedWeatherService, WeatherData, DisasterAlert, LocationData } from "@/services/enhancedWeatherService";
 import { aiService } from "@/services/aiService";
 import { 
   MapPin, 
@@ -24,7 +25,7 @@ import {
 import { toast } from "sonner";
 
 interface DashboardProps {
-  userLocation: string;
+  userLocation: LocationData;
   onLocationChange: () => void;
 }
 
@@ -39,12 +40,12 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
   const [precautionsModal, setPrecautionsModal] = useState({ 
     isOpen: false, 
     disaster: 'flood' as DisasterType, 
-    location: userLocation 
+    location: userLocation.city 
   });
   const [storiesModal, setStoriesModal] = useState({ 
     isOpen: false, 
     disaster: 'flood' as DisasterType, 
-    location: userLocation 
+    location: userLocation.city 
   });
   const [detailsModal, setDetailsModal] = useState({ 
     isOpen: false, 
@@ -76,8 +77,8 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
     setIsLoading(true);
     try {
       const [weather, disasters] = await Promise.all([
-        weatherService.getCurrentWeather(userLocation),
-        weatherService.getDisasterAlerts(userLocation)
+        enhancedWeatherService.getCurrentWeather(userLocation),
+        enhancedWeatherService.getDisasterAlerts(userLocation)
       ]);
       
       setWeatherData(weather);
@@ -119,7 +120,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
     setPrecautionsModal({
       isOpen: true,
       disaster: disasterType,
-      location: userLocation
+      location: userLocation.city
     });
   };
 
@@ -128,7 +129,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
     setStoriesModal({
       isOpen: true,
       disaster: disasterType,
-      location: userLocation
+      location: userLocation.city
     });
   };
 
@@ -182,7 +183,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
                 <h1 className="text-xl font-bold">DisasterAlert</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-3 w-3" />
-                  {userLocation}
+                  {userLocation.city}, {userLocation.state || userLocation.country}
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -221,6 +222,11 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-8">
+        {/* Weather Stats */}
+        {weatherData && (
+          <WeatherStats weatherData={weatherData} />
+        )}
+
         {/* Safety Status */}
         {weatherData && (
           <SafetyStatus
@@ -268,7 +274,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
               <div>
                 <h3 className="font-semibold text-safe">All Clear</h3>
                 <p className="text-sm text-muted-foreground">
-                  No active disaster alerts for {userLocation}. Stay prepared!
+                  No active disaster alerts for {userLocation.city}. Stay prepared!
                 </p>
               </div>
             </CardContent>
