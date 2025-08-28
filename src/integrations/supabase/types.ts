@@ -14,13 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_profiles: {
+        Row: {
+          city: string | null
+          city_id: number | null
+          country: string | null
+          created_at: string | null
+          id: string
+          last_updated: string | null
+          latitude: number | null
+          longitude: number | null
+          state: string | null
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          city_id?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          state?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          city_id?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          state?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      weather_cache: {
+        Row: {
+          cached_at: string | null
+          city: string
+          expires_at: string | null
+          feels_like: number | null
+          forecast_data: Json | null
+          humidity: number | null
+          id: string
+          latitude: number
+          longitude: number
+          precipitation: number | null
+          temp_max: number | null
+          temp_min: number | null
+          temperature: number | null
+          uv_index: number | null
+          weather_condition: string | null
+          wind_direction: number | null
+          wind_speed: number | null
+        }
+        Insert: {
+          cached_at?: string | null
+          city: string
+          expires_at?: string | null
+          feels_like?: number | null
+          forecast_data?: Json | null
+          humidity?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          precipitation?: number | null
+          temp_max?: number | null
+          temp_min?: number | null
+          temperature?: number | null
+          uv_index?: number | null
+          weather_condition?: string | null
+          wind_direction?: number | null
+          wind_speed?: number | null
+        }
+        Update: {
+          cached_at?: string | null
+          city?: string
+          expires_at?: string | null
+          feels_like?: number | null
+          forecast_data?: Json | null
+          humidity?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          precipitation?: number | null
+          temp_max?: number | null
+          temp_min?: number | null
+          temperature?: number | null
+          uv_index?: number | null
+          weather_condition?: string | null
+          wind_direction?: number | null
+          wind_speed?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      clean_expired_weather_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
