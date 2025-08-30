@@ -14,6 +14,129 @@ const supabase = createClient(
 
 const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHERMAP_API_KEY') || 'c539305eb1479c8064edb1b01ced63d9';
 
+// Major Indian cities with coordinates and IDs for IMD compatibility
+const cityDatabase = {
+  'Delhi': { lat: 28.6139, lon: 77.2090, id: 42182 },
+  'Mumbai': { lat: 19.0760, lon: 72.8777, id: 43003 },
+  'Bangalore': { lat: 12.9716, lon: 77.5946, id: 43296 },
+  'Chennai': { lat: 13.0827, lon: 80.2707, id: 43279 },
+  'Kolkata': { lat: 22.5726, lon: 88.3639, id: 42809 },
+  'Hyderabad': { lat: 17.3850, lon: 78.4867, id: 43128 },
+  'Pune': { lat: 18.5204, lon: 73.8567, id: 43063 },
+  'Ahmedabad': { lat: 23.0225, lon: 72.5714, id: 42647 },
+  'Jaipur': { lat: 26.9124, lon: 75.7873, id: 42361 },
+  'Surat': { lat: 21.1702, lon: 72.8311, id: 42647 },
+  'Varanasi': { lat: 25.3176, lon: 82.9739, id: 42492 },
+  'Agra': { lat: 27.1767, lon: 78.0081, id: 42379 },
+  'Kanpur': { lat: 26.4499, lon: 80.3319, id: 42367 },
+  'Lucknow': { lat: 26.8467, lon: 80.9462, id: 42369 }
+};
+
+// Haversine distance calculation
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function toRadians(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
+
+// Find nearest IMD-supported city
+function findNearestIMDCity(lat: number, lon: number): { name: string; distance: number; id: number } {
+  let nearest = { name: 'Delhi', distance: Infinity, id: 42182 };
+  
+  Object.entries(cityDatabase).forEach(([cityName, cityData]) => {
+    const distance = calculateDistance(lat, lon, cityData.lat, cityData.lon);
+    if (distance < nearest.distance) {
+      nearest = { name: cityName, distance, id: cityData.id };
+    }
+  });
+
+  return nearest;
+}
+
+// Enhanced reverse geocoding
+async function enhancedReverseGeocode(lat: number, lon: number): Promise<any> {
+  try {
+    // Try OpenWeatherMap reverse geocoding first
+    const owmResponse = await fetch(
+      `http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`
+    );
+
+    if (owmResponse.ok) {
+      const owmData = await owmResponse.json();
+      if (owmData && owmData.length > 0) {
+        const location = owmData[0];
+        const result = {
+          city: location.name,
+          state: location.state,
+          country: location.country,
+          latitude: lat,
+          longitude: lon
+        };
+
+        // Check if we need to snap to nearest IMD city
+        const nearest = findNearestIMDCity(lat, lon);
+        if (nearest.distance > 50) {
+          result.cityId = nearest.id;
+          result.distanceToNearestTown = nearest.distance;
+          result.nearestTown = nearest.name;
+        } else {
+          // Check if current city is in IMD database
+          const cityKey = Object.keys(cityDatabase).find(key => 
+            key.toLowerCase() === result.city.toLowerCase()
+          );
+          if (cityKey) {
+            result.cityId = cityDatabase[cityKey].id;
+          }
+        }
+
+        return result;
+      }
+    }
+
+    // Fallback to Nominatim
+    const nominatimResponse = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`
+    );
+
+    if (nominatimResponse.ok) {
+      const nominatimData = await nominatimResponse.json();
+      if (nominatimData) {
+        const result = {
+          city: nominatimData.address?.city || nominatimData.address?.town || nominatimData.address?.village || 'Unknown',
+          state: nominatimData.address?.state,
+          country: nominatimData.address?.country || 'India',
+          latitude: lat,
+          longitude: lon
+        };
+
+        // Always check for nearest IMD city for Nominatim results
+        const nearest = findNearestIMDCity(lat, lon);
+        if (nearest.distance > 50) {
+          result.cityId = nearest.id;
+          result.distanceToNearestTown = nearest.distance;
+          result.nearestTown = nearest.name;
+        }
+
+        return result;
+      }
+    }
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -25,13 +148,24 @@ serve(async (req) => {
 
     console.log(`Fetching weather for: ${city} (${latitude}, ${longitude})`);
 
-    // Check cache first
+    // Enhance location data with reverse geocoding if city is not accurate
+    let locationData = { city, latitude, longitude };
+    if (!city || city === 'Unknown') {
+      const enhanced = await enhancedReverseGeocode(latitude, longitude);
+      if (enhanced) {
+        locationData = enhanced;
+      }
+    }
+
+    console.log(`Enhanced location: ${locationData.city} (${locationData.latitude}, ${locationData.longitude})`);
+
+    // Check cache first using enhanced location
     const { data: cachedData } = await supabase
       .from('weather_cache')
       .select('*')
       .gte('expires_at', new Date().toISOString())
-      .eq('latitude', latitude.toFixed(6))
-      .eq('longitude', longitude.toFixed(6))
+      .eq('latitude', parseFloat(latitude.toFixed(6)))
+      .eq('longitude', parseFloat(longitude.toFixed(6)))
       .order('cached_at', { ascending: false })
       .limit(1);
 
@@ -90,11 +224,16 @@ serve(async (req) => {
           precipitation: current.rain?.['1h'] || current.snow?.['1h'] || 0,
           temp_min: Math.round(current.main.temp_min),
           temp_max: Math.round(current.main.temp_max),
-          latitude,
-          longitude,
-          city,
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          city: locationData.city,
           forecast_data: forecastData,
-          source: 'openweathermap'
+          source: 'openweathermap',
+          // Add distance info if showing nearest town
+          ...(locationData.distanceToNearestTown && {
+            distanceToNearestTown: locationData.distanceToNearestTown,
+            nearestTown: locationData.nearestTown
+          })
         };
 
         console.log('OpenWeatherMap data retrieved successfully');
@@ -134,11 +273,16 @@ serve(async (req) => {
             precipitation: current.precipitation || 0,
             temp_min: Math.round(daily.temperature_2m_min[0]),
             temp_max: Math.round(daily.temperature_2m_max[0]),
-            latitude,
-            longitude,
-            city,
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            city: locationData.city,
             forecast_data: forecastData,
-            source: 'open-meteo'
+            source: 'open-meteo',
+            // Add distance info if showing nearest town
+            ...(locationData.distanceToNearestTown && {
+              distanceToNearestTown: locationData.distanceToNearestTown,
+              nearestTown: locationData.nearestTown
+            })
           };
 
           console.log('Open-Meteo data retrieved successfully');
@@ -162,22 +306,27 @@ serve(async (req) => {
         precipitation: 0,
         temp_min: 24,
         temp_max: 32,
-        latitude,
-        longitude,
-        city,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        city: locationData.city,
         forecast_data: [],
-        source: 'fallback'
+        source: 'fallback',
+        // Add distance info if showing nearest town
+        ...(locationData.distanceToNearestTown && {
+          distanceToNearestTown: locationData.distanceToNearestTown,
+          nearestTown: locationData.nearestTown
+        })
       };
     }
 
-    // Cache the result
+    // Cache the result using enhanced location data
     try {
       await supabase
         .from('weather_cache')
         .insert({
-          latitude: latitude.toFixed(6),
-          longitude: longitude.toFixed(6),
-          city,
+          latitude: parseFloat(locationData.latitude.toFixed(6)),
+          longitude: parseFloat(locationData.longitude.toFixed(6)),
+          city: locationData.city,
           ...weatherData
         });
       console.log('Weather data cached successfully');

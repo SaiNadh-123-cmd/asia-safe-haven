@@ -20,6 +20,10 @@ interface WeatherStatsProps {
 }
 
 export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps) => {
+  // Check if location has distance info (showing nearest town weather)
+  const locationData = weatherData as any;
+  const showingNearestTown = locationData.distanceToNearestTown && locationData.nearestTown;
+  
   const getWeatherIcon = (condition: string) => {
     const lowerCondition = condition.toLowerCase();
     
@@ -90,6 +94,11 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
               </Badge>
               <div className="text-sm text-muted-foreground mt-2">
                 {weatherData.city}
+                {showingNearestTown && (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    Nearest town: {locationData.nearestTown} ({Math.round(locationData.distanceToNearestTown)}km away)
+                  </div>
+                )}
               </div>
             </div>
           </div>

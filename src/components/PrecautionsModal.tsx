@@ -18,9 +18,10 @@ interface PrecautionsModalProps {
   onClose: () => void;
   disaster: DisasterType;
   location: string;
+  active?: boolean; // Whether this is for an active disaster or general awareness
 }
 
-export const PrecautionsModal = ({ isOpen, onClose, disaster, location }: PrecautionsModalProps) => {
+export const PrecautionsModal = ({ isOpen, onClose, disaster, location, active = true }: PrecautionsModalProps) => {
   const [precautions, setPrecautions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const disasterInfo = getDisasterInfo(disaster);
@@ -28,7 +29,7 @@ export const PrecautionsModal = ({ isOpen, onClose, disaster, location }: Precau
   const generatePrecautions = async () => {
     setIsLoading(true);
     try {
-      const generated = await aiService.generatePrecautions(disaster, location);
+      const generated = await aiService.generatePrecautions(disaster, location, active);
       setPrecautions(generated);
     } catch (error) {
       console.error('Error generating precautions:', error);
@@ -55,7 +56,10 @@ export const PrecautionsModal = ({ isOpen, onClose, disaster, location }: Precau
                 {disasterInfo.name} Safety Precautions
               </DialogTitle>
               <DialogDescription>
-                Essential safety measures for {location}
+                {active 
+                  ? `Emergency safety measures for active ${disasterInfo.name.toLowerCase()} in ${location}`
+                  : `Preparedness and awareness safety measures for ${disasterInfo.name.toLowerCase()} in ${location}`
+                }
               </DialogDescription>
             </div>
           </div>
@@ -64,7 +68,7 @@ export const PrecautionsModal = ({ isOpen, onClose, disaster, location }: Precau
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="capitalize">
-              AI-Generated Safety Guide
+              {active ? 'Emergency Response Guide' : 'Preparedness & Awareness Guide'}
             </Badge>
             <Button
               variant="ghost"

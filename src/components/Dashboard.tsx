@@ -40,7 +40,8 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
   const [precautionsModal, setPrecautionsModal] = useState({ 
     isOpen: false, 
     disaster: 'flood' as DisasterType, 
-    location: userLocation.city 
+    location: userLocation.city,
+    active: true
   });
   const [storiesModal, setStoriesModal] = useState({ 
     isOpen: false, 
@@ -117,10 +118,12 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
 
   const handleViewPrecautions = (disaster?: DisasterType) => {
     const disasterType = disaster || (weatherData?.safetyLevel === 'danger' ? 'flood' : 'flood');
+    const isActive = Boolean(disaster && alerts.some(alert => alert.type === disaster));
     setPrecautionsModal({
       isOpen: true,
       disaster: disasterType,
-      location: userLocation.city
+      location: userLocation.city,
+      active: isActive
     });
   };
 
@@ -151,7 +154,8 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
     setPrecautionsModal({
       isOpen: true,
       disaster: alert.type as DisasterType,
-      location: alert.location
+      location: alert.location,
+      active: true // This is always for an active disaster
     });
   };
 
@@ -320,6 +324,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
         onClose={() => setPrecautionsModal(prev => ({ ...prev, isOpen: false }))}
         disaster={precautionsModal.disaster}
         location={precautionsModal.location}
+        active={precautionsModal.active}
       />
 
       <StoriesModal

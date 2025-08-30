@@ -4,12 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 class AIService {
   private isInitialized = true; // Always ready since we use Edge Functions
 
-  async generatePrecautions(disaster: string, location: string): Promise<string[]> {
+  async generatePrecautions(disaster: string, location: string, active: boolean = true): Promise<string[]> {
     try {
-      console.log(`Calling precautions API for ${disaster} in ${location}`);
+      console.log(`Calling precautions API for ${disaster} in ${location} (active: ${active})`);
       
       const { data, error } = await supabase.functions.invoke('generate-precautions', {
-        body: { disaster, location }
+        body: { disaster, location, active }
       });
 
       if (error) {
@@ -88,6 +88,27 @@ class AIService {
         "Follow evacuation orders if issued",
         "Avoid using electrical appliances during the storm"
       ],
+      storm: [
+        "Secure outdoor furniture and loose objects that could become projectiles",
+        "Stay indoors and away from windows during high winds",
+        "Stock emergency supplies: water, food, flashlight, battery-powered radio",
+        "Avoid electrical appliances during lightning storms",
+        "Keep trees trimmed and clear gutters to prevent damage"
+      ],
+      wildfire: [
+        "Create defensible space around your home by clearing vegetation",
+        "Have an evacuation plan and multiple escape routes ready",
+        "Keep emergency supplies packed: documents, medications, water",
+        "Install smoke detectors and check batteries regularly",
+        "Never ignore evacuation orders - leave immediately when advised"
+      ],
+      drought: [
+        "Conserve water by fixing leaks and using water-efficient fixtures",
+        "Store emergency water supplies - 1 gallon per person per day",
+        "Protect crops and gardens with mulch and efficient irrigation",
+        "Monitor air quality as drought increases dust and fire risk",
+        "Prepare for increased fire danger by clearing dry vegetation"
+      ],
       heatwave: [
         "Stay indoors during peak heat hours",
         "Drink plenty of water regularly",
@@ -124,6 +145,21 @@ class AIService {
         `As the cyclone approached ${location}, families secured their homes and moved to designated shelter areas. They brought essential supplies and helped elderly residents reach safety. Throughout the storm, people stayed together, sharing resources and keeping spirits up until the danger passed.`,
         `When the cyclone hit ${location}, the community's emergency plan swung into action. Residents evacuated to reinforced buildings while volunteers ensured everyone had food and water. The storm was fierce, but their preparation and teamwork kept everyone safe.`,
         `The cyclone threatening ${location} saw an incredible display of community cooperation. Neighbors helped board up windows and secure property before moving to shelters together. Their advance planning and mutual support helped everyone weather the storm safely.`
+      ],
+      storm: [
+        `During the severe storm in ${location}, residents quickly secured outdoor furniture and prepared for power outages. Neighbors worked together to help elderly residents secure their properties and move to safer areas. Emergency supplies and communication helped everyone stay safe through the night.`,
+        `When the storm hit ${location}, the community's preparation showed. Residents with generators shared power for essential needs while others provided shelter for families whose homes were damaged. The coordinated response minimized injuries and property damage.`,
+        `The unexpected storm in ${location} brought communities together as residents helped each other board up windows and clear debris. Quick action and mutual support helped everyone weather the dangerous winds and flooding safely.`
+      ],
+      wildfire: [
+        `As wildfires approached ${location}, the community executed well-rehearsed evacuation plans. Residents with large vehicles helped transport those without means while firefighters coordinated defense efforts. The early warning system and community cooperation saved lives and property.`,
+        `The wildfire threat to ${location} saw incredible bravery as residents followed evacuation orders and helped others reach safety. Emergency coordination centers kept families connected while first responders battled the flames. Preparation and teamwork prevented casualties.`,
+        `When wildfires surrounded ${location}, residents relied on their emergency plans and community networks. Evacuation routes were kept clear while volunteers assisted with livestock and pet rescue. The organized response helped everyone escape safely.`
+      ],
+      drought: [
+        `During the prolonged drought in ${location}, communities implemented water conservation measures and shared resources. Residents with wells provided water to neighbors while local authorities coordinated distribution. The collective effort helped everyone through the water shortage.`,
+        `The severe drought affecting ${location} brought out community resilience as people shared water supplies and implemented conservation practices. Agricultural communities pooled resources while urban areas established distribution points. Cooperation helped minimize the impact.`,
+        `When drought struck ${location}, the community organized water distribution and conservation programs. Residents modified their routines and shared resources while authorities implemented emergency measures. The unified response helped protect essential services.`
       ],
       heatwave: [
         `During the extreme heatwave in ${location}, communities opened cooling centers and distributed water to vulnerable residents. People checked on their neighbors regularly and shared ice and cool drinks. Many lives were saved through collective care and early warning systems.`,
