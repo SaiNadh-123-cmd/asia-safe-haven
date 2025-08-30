@@ -9,6 +9,7 @@ const corsHeaders = {
 interface PrecautionRequest {
   disaster: string;
   location: string;
+  active?: boolean; // Allow generating precautions even when no active disaster
 }
 
 serve(async (req) => {
@@ -18,17 +19,21 @@ serve(async (req) => {
   }
 
   try {
-    const { disaster, location }: PrecautionRequest = await req.json();
+    const { disaster, location, active = true }: PrecautionRequest = await req.json();
     
-    console.log(`Generating precautions for ${disaster} in ${location}`);
+    console.log(`Generating precautions for ${disaster} in ${location} (active: ${active})`);
 
     const huggingFaceApiKey = Deno.env.get('HUGGING_FACE_API_KEY');
     if (!huggingFaceApiKey) {
       throw new Error('Hugging Face API key not configured');
     }
 
-    // Create dynamic prompt for precautions
-    const prompt = `Generate 5 essential safety precautions for surviving a ${disaster} in ${location}. Focus on immediate actions and safety measures. Format as a numbered list:
+    // Create dynamic prompt based on whether disaster is active or for awareness
+    const promptContext = active 
+      ? `during an active ${disaster} situation`
+      : `for ${disaster} preparedness and awareness, even if not currently active`;
+    
+    const prompt = `Provide 5 key precautions for surviving a ${disaster} like storm, wildfire, or drought in ${location}, ${promptContext}. Focus on actionable safety measures. Format as a numbered list:
 
 1.`;
 
@@ -149,6 +154,27 @@ function getFallbackPrecautions(disaster: string): string[] {
       "Secure outdoor furniture and objects that could become projectiles",
       "Listen to weather updates and follow evacuation orders immediately",
       "Avoid using electrical appliances during thunder and lightning"
+    ],
+    storm: [
+      "Secure outdoor furniture and loose objects that could become projectiles",
+      "Stay indoors and away from windows during high winds",
+      "Stock emergency supplies: water, food, flashlight, battery-powered radio",
+      "Avoid electrical appliances during lightning storms",
+      "Keep trees trimmed and clear gutters to prevent damage"
+    ],
+    wildfire: [
+      "Create defensible space around your home by clearing vegetation",
+      "Have an evacuation plan and multiple escape routes ready",
+      "Keep emergency supplies packed: documents, medications, water",
+      "Install smoke detectors and check batteries regularly",
+      "Never ignore evacuation orders - leave immediately when advised"
+    ],
+    drought: [
+      "Conserve water by fixing leaks and using water-efficient fixtures",
+      "Store emergency water supplies - 1 gallon per person per day",
+      "Protect crops and gardens with mulch and efficient irrigation",
+      "Monitor air quality as drought increases dust and fire risk",
+      "Prepare for increased fire danger by clearing dry vegetation"
     ],
     heatwave: [
       "Stay indoors during peak heat hours (10 AM to 4 PM)",

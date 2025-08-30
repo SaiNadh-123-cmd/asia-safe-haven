@@ -111,27 +111,98 @@ class EnhancedWeatherService {
     }
   }
 
-  // Reverse geocoding
+  // Enhanced reverse geocoding with IMD city snapping
   async reverseGeocode(lat: number, lon: number): Promise<LocationData | null> {
     try {
-      const response = await axios.get(
-        `${this.baseUrls.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json`
+      // Try OpenWeatherMap reverse geocoding first
+      const owmResponse = await axios.get(
+        `${this.baseUrls.openWeatherGeo}/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${this.openWeatherApiKey}`
       );
 
-      if (response.data) {
-        const data = response.data;
-        return {
-          city: data.address?.city || data.address?.town || data.address?.village || 'Unknown',
-          state: data.address?.state,
-          country: data.address?.country || 'India',
+      let location: LocationData | null = null;
+
+      if (owmResponse.data && owmResponse.data.length > 0) {
+        const data = owmResponse.data[0];
+        location = {
+          city: data.name,
+          state: data.state,
+          country: data.country,
           latitude: lat,
           longitude: lon
         };
+      } else {
+        // Fallback to Nominatim
+        const nominatimResponse = await axios.get(
+          `${this.baseUrls.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`
+        );
+
+        if (nominatimResponse.data) {
+          const data = nominatimResponse.data;
+          location = {
+            city: data.address?.city || data.address?.town || data.address?.village || 'Unknown',
+            state: data.address?.state,
+            country: data.address?.country || 'India',
+            latitude: lat,
+            longitude: lon
+          };
+        }
       }
+
+      if (location) {
+        // Find nearest IMD-supported city if current location is >50km away
+        const nearestCity = this.findNearestIMDCity(lat, lon);
+        if (nearestCity.distance > 50) {
+          location.cityId = nearestCity.id;
+          // Add distance info to location for display purposes  
+          (location as any).distanceToNearestTown = nearestCity.distance;
+          (location as any).nearestTown = nearestCity.name;
+        } else {
+          // Check if current city is in IMD database
+          const cityKey = Object.keys(this.cityDatabase).find(key => 
+            key.toLowerCase() === location!.city.toLowerCase()
+          );
+          if (cityKey) {
+            location.cityId = this.cityDatabase[cityKey as keyof typeof this.cityDatabase].id;
+          }
+        }
+      }
+
+      return location;
     } catch (error) {
       console.error('Reverse geocoding error:', error);
+      return null;
     }
-    return null;
+  }
+
+  // Haversine distance calculation
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLon = this.toRadians(lon2 - lon1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in kilometers
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+  }
+
+  // Find nearest IMD-supported city
+  private findNearestIMDCity(lat: number, lon: number): { name: string; distance: number; id: number } {
+    let nearest = { name: 'Delhi', distance: Infinity, id: 42182 };
+    
+    Object.entries(this.cityDatabase).forEach(([cityName, cityData]) => {
+      const distance = this.calculateDistance(lat, lon, cityData.lat, cityData.lon);
+      if (distance < nearest.distance) {
+        nearest = { name: cityName, distance, id: cityData.id };
+      }
+    });
+
+    return nearest;
   }
 
   // Enhanced weather fetching with multiple APIs and caching
