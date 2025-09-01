@@ -5,6 +5,7 @@ import { Bell, BellOff, CheckCircle, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
+import interfaceBg from "@/assets/interface_bg.jpg";
 
 interface NotificationSetupProps {
   onComplete?: () => void;
@@ -82,9 +83,18 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex items-center justify-center p-4"
+        className="min-h-screen flex items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: `url(${interfaceBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
       >
-        <Card className="w-full max-w-md">
+        {/* Semi-transparent overlay */}
+        <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+        
+        <Card className="w-full max-w-md relative z-10 backdrop-blur-md bg-background/95 border-primary/20">
           <CardContent className="pt-6 text-center">
             <motion.div
               initial={{ scale: 0 }}
@@ -107,9 +117,18 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex items-center justify-center p-4"
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: `url(${interfaceBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
     >
-      <Card className="w-full max-w-2xl">
+      {/* Semi-transparent overlay */}
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+      
+      <Card className="w-full max-w-2xl relative z-10 backdrop-blur-md bg-background/95 border-primary/20">
         <CardHeader className="text-center">
           <motion.div
             initial={{ scale: 0 }}

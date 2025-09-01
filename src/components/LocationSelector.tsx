@@ -7,6 +7,7 @@ import { MapPin, Navigation, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { LocationData } from "@/services/enhancedWeatherService";
 import { supabase } from "@/integrations/supabase/client";
+import interfaceBg from "@/assets/interface_bg.jpg";
 
 interface LocationSelectorProps {
   onLocationSelect: (location: LocationData) => void;
@@ -142,14 +143,25 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="min-h-screen bg-gradient-to-br from-primary/5 to-background flex items-center justify-center p-4"
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: `url(${interfaceBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
     >
-      <motion.div
-        initial={{ y: 20 }}
-        animate={{ y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Card className="w-full max-w-2xl shadow-2xl">
+      {/* Semi-transparent overlay */}
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+      
+      {/* Content container */}
+      <div className="relative z-10 w-full max-w-2xl">
+        <motion.div
+          initial={{ y: 20 }}
+          animate={{ y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="w-full shadow-2xl backdrop-blur-md bg-background/95 border-primary/20">
           <CardHeader className="text-center">
             <motion.div 
               initial={{ scale: 0 }}
@@ -267,7 +279,8 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
             </motion.div>
           </CardContent>
         </Card>
-      </motion.div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 };

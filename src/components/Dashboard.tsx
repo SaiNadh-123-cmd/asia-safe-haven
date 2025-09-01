@@ -23,6 +23,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import dashboardBg from "@/assets/dashboard_bg.jpg";
 
 interface DashboardProps {
   userLocation: LocationData;
@@ -161,22 +163,48 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
 
   if (!weatherData && isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-background">
-        <div className="text-center space-y-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen flex items-center justify-center relative"
+        style={{
+          backgroundImage: `url(${dashboardBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Semi-transparent overlay */}
+        <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" />
+        
+        <div className="text-center space-y-4 relative z-10">
           <RefreshCw className="h-12 w-12 animate-spin text-primary mx-auto" />
           <div>
             <h2 className="text-xl font-semibold">Loading DisasterAlert</h2>
             <p className="text-muted-foreground">Fetching safety information...</p>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      className="min-h-screen relative"
+      style={{
+        backgroundImage: `url(${dashboardBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Semi-transparent overlay */}
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b">
+      <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-primary/20 relative">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -225,7 +253,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 space-y-8">
+      <div className="container mx-auto px-4 py-6 space-y-8 relative z-10">
         {/* Weather Stats */}
         {weatherData && (
           <WeatherStats weatherData={weatherData} />
@@ -347,6 +375,6 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
           handleViewStories(detailsModal.disaster);
         }}
       />
-    </div>
+    </motion.div>
   );
 };
