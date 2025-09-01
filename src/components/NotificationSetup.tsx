@@ -32,8 +32,8 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
       
       if (granted) {
         // In a real app, you would get the FCM token from Firebase SDK
-        // For now, we'll generate a mock token
-        const mockToken = `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // For now, we'll generate a secure mock token for development
+        const mockToken = `fcm_dev_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(16)}`;
         
         const registered = await registerToken(mockToken);
         

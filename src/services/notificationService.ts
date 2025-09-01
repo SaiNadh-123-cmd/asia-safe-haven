@@ -38,10 +38,18 @@ export class NotificationService {
    */
   async registerFCMToken(token: string) {
     try {
+      // Validate token format for basic security
+      if (!token || token.length < 10 || !/^[a-zA-Z0-9_-]+$/.test(token.replace(/[:.]/g, ''))) {
+        throw new Error('Invalid token format');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        throw new Error('User not authenticated');
+        // For unauthenticated users, store token temporarily in localStorage
+        localStorage.setItem('pending_fcm_token', token);
+        this.fcmToken = token;
+        return true;
       }
 
       const response = await supabase.functions.invoke('notifications', {
@@ -62,7 +70,8 @@ export class NotificationService {
         .from('user_profiles')
         .upsert({
           user_id: session.user.id,
-          fcm_token: token
+          fcm_token: token,
+          last_updated: new Date().toISOString()
         });
 
       if (updateError) {
@@ -70,6 +79,8 @@ export class NotificationService {
       }
 
       this.fcmToken = token;
+      // Clear any pending token
+      localStorage.removeItem('pending_fcm_token');
       console.log('FCM token registered successfully');
       return true;
       
@@ -77,6 +88,17 @@ export class NotificationService {
       console.error('Error registering FCM token:', error);
       return false;
     }
+  }
+
+  /**
+   * Generate a secure mock token for development/testing
+   */
+  generateSecureMockToken(): string {
+    const timestamp = Date.now();
+    const randomBytes = new Uint8Array(16);
+    crypto.getRandomValues(randomBytes);
+    const randomStr = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    return `fcm_dev_${timestamp}_${randomStr}`;
   }
 
   /**

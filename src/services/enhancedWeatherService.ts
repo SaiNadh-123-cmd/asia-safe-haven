@@ -46,14 +46,7 @@ export interface DisasterAlert {
 }
 
 class EnhancedWeatherService {
-  private openWeatherApiKey = 'c539305eb1479c8064edb1b01ced63d9';
-  
   private baseUrls = {
-    openWeather: 'https://api.openweathermap.org/data/2.5',
-    openWeatherGeo: 'https://api.openweathermap.org/geo/1.0',
-    weatherApi: 'https://weather.indianapi.in',
-    imd: 'https://city.imd.gov.in/api',
-    imdMausam: 'https://mausam.imd.gov.in/api',
     openMeteo: 'https://api.open-meteo.com/v1',
     nominatim: 'https://nominatim.openstreetmap.org'
   };
@@ -72,27 +65,12 @@ class EnhancedWeatherService {
     'Surat': { lat: 21.1702, lon: 72.8311, id: 42647 }
   };
 
-  // Geocoding with autocomplete
+  // Geocoding with autocomplete using weather edge function
   async searchLocations(query: string): Promise<LocationData[]> {
     if (query.length < 2) return [];
 
     try {
-      // First try OpenWeatherMap geocoding
-      const owmResponse = await axios.get(
-        `${this.baseUrls.openWeatherGeo}/direct?q=${encodeURIComponent(query)}&limit=5&appid=${this.openWeatherApiKey}`
-      );
-
-      if (owmResponse.data && owmResponse.data.length > 0) {
-        return owmResponse.data.map((item: any) => ({
-          city: item.name,
-          state: item.state,
-          country: item.country,
-          latitude: item.lat,
-          longitude: item.lon
-        }));
-      }
-
-      // Fallback to Nominatim
+      // Use Nominatim for geocoding (free and no API key required)
       const nominatimResponse = await axios.get(
         `${this.baseUrls.nominatim}/search?q=${encodeURIComponent(query)}&format=json&countrycodes=in&limit=5`
       );
@@ -114,38 +92,22 @@ class EnhancedWeatherService {
   // Enhanced reverse geocoding with IMD city snapping
   async reverseGeocode(lat: number, lon: number): Promise<LocationData | null> {
     try {
-      // Try OpenWeatherMap reverse geocoding first
-      const owmResponse = await axios.get(
-        `${this.baseUrls.openWeatherGeo}/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${this.openWeatherApiKey}`
+      // Use Nominatim for reverse geocoding
+      const nominatimResponse = await axios.get(
+        `${this.baseUrls.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`
       );
 
       let location: LocationData | null = null;
 
-      if (owmResponse.data && owmResponse.data.length > 0) {
-        const data = owmResponse.data[0];
+      if (nominatimResponse.data) {
+        const data = nominatimResponse.data;
         location = {
-          city: data.name,
-          state: data.state,
-          country: data.country,
+          city: data.address?.city || data.address?.town || data.address?.village || 'Unknown',
+          state: data.address?.state,
+          country: data.address?.country || 'India',
           latitude: lat,
           longitude: lon
         };
-      } else {
-        // Fallback to Nominatim
-        const nominatimResponse = await axios.get(
-          `${this.baseUrls.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`
-        );
-
-        if (nominatimResponse.data) {
-          const data = nominatimResponse.data;
-          location = {
-            city: data.address?.city || data.address?.town || data.address?.village || 'Unknown',
-            state: data.address?.state,
-            country: data.address?.country || 'India',
-            latitude: lat,
-            longitude: lon
-          };
-        }
       }
 
       if (location) {
@@ -205,7 +167,7 @@ class EnhancedWeatherService {
     return nearest;
   }
 
-  // Enhanced weather fetching with multiple APIs and caching
+  // Enhanced weather fetching using secure edge function
   async getCurrentWeather(location: LocationData): Promise<WeatherData> {
     try {
       // Check cache first
@@ -216,28 +178,29 @@ class EnhancedWeatherService {
 
       let weatherData: WeatherData | null = null;
 
-      // Try OpenWeatherMap (primary)
+      // Try weather edge function first (secure API key usage)
       try {
-        weatherData = await this.getOpenWeatherMapData(location);
+        const response = await supabase.functions.invoke('weather', {
+          body: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            city: location.city
+          }
+        });
+
+        if (response.data && !response.error) {
+          weatherData = this.transformEdgeFunctionData(response.data, location);
+        }
       } catch (error) {
-        console.warn('OpenWeatherMap failed, trying alternatives');
+        console.warn('Weather edge function failed, trying Open-Meteo');
       }
 
-      // Fallback to Open-Meteo
+      // Fallback to Open-Meteo (free, no API key required)
       if (!weatherData) {
         try {
           weatherData = await this.getOpenMeteoData(location);
         } catch (error) {
-          console.warn('Open-Meteo failed, trying IMD');
-        }
-      }
-
-      // Fallback to IMD
-      if (!weatherData && location.city in this.cityDatabase) {
-        try {
-          weatherData = await this.getIMDData(location);
-        } catch (error) {
-          console.warn('IMD failed, using fallback');
+          console.warn('Open-Meteo failed, using fallback');
         }
       }
 
@@ -257,65 +220,25 @@ class EnhancedWeatherService {
     }
   }
 
-  private async getOpenWeatherMapData(location: LocationData): Promise<WeatherData> {
-    const [currentResponse, forecastResponse] = await Promise.all([
-      axios.get(`${this.baseUrls.openWeather}/weather`, {
-        params: {
-          lat: location.latitude,
-          lon: location.longitude,
-          appid: this.openWeatherApiKey,
-          units: 'metric'
-        }
-      }),
-      axios.get(`${this.baseUrls.openWeather}/forecast`, {
-        params: {
-          lat: location.latitude,
-          lon: location.longitude,
-          appid: this.openWeatherApiKey,
-          units: 'metric'
-        }
-      })
-    ]);
-
-    const current = currentResponse.data;
-    const forecast = forecastResponse.data;
-
-    // Process 7-day forecast
-    const forecastData: ForecastData[] = [];
-    const dailyForecast = new Map();
-
-    forecast.list.forEach((item: any) => {
-      const date = new Date(item.dt * 1000).toDateString();
-      if (!dailyForecast.has(date)) {
-        dailyForecast.set(date, {
-          date,
-          tempMax: item.main.temp_max,
-          tempMin: item.main.temp_min,
-          condition: item.weather[0].description,
-          precipitation: item.rain?.['3h'] || 0
-        });
-      }
-    });
-
-    forecastData.push(...Array.from(dailyForecast.values()).slice(0, 7));
-
+  // Transform weather edge function response to WeatherData
+  private transformEdgeFunctionData(data: any, location: LocationData): WeatherData {
     return {
-      temperature: Math.round(current.main.temp),
-      feelsLike: Math.round(current.main.feels_like),
-      humidity: current.main.humidity,
-      description: current.weather[0].description,
-      windSpeed: Math.round(current.wind.speed * 3.6), // Convert m/s to km/h
-      windDirection: current.wind.deg,
-      uvIndex: 0, // Not available in free tier
-      precipitation: current.rain?.['1h'] || current.snow?.['1h'] || 0,
-      tempMin: Math.round(current.main.temp_min),
-      tempMax: Math.round(current.main.temp_max),
+      temperature: Math.round(data.temperature || data.temp || 25),
+      feelsLike: Math.round(data.feels_like || data.temperature || 25),
+      humidity: data.humidity || 60,
+      description: data.description || data.weather_main || 'Clear',
+      windSpeed: Math.round(data.wind_speed || 5),
+      windDirection: data.wind_direction || 0,
+      uvIndex: data.uv_index || 0,
+      precipitation: data.precipitation || data.rain || 0,
+      tempMin: Math.round(data.temp_min || data.temperature - 3),
+      tempMax: Math.round(data.temp_max || data.temperature + 3),
       city: location.city,
       latitude: location.latitude,
       longitude: location.longitude,
-      warnings: this.analyzeWeatherConditions(current),
-      safetyLevel: this.calculateSafetyLevel(current),
-      forecast: forecastData
+      warnings: data.warnings || [],
+      safetyLevel: this.determineSafetyLevel(data),
+      forecast: data.forecast || []
     };
   }
 
@@ -362,38 +285,21 @@ class EnhancedWeatherService {
     };
   }
 
-  private async getIMDData(location: LocationData): Promise<WeatherData> {
-    const cityInfo = this.cityDatabase[location.city as keyof typeof this.cityDatabase];
-    if (!cityInfo) throw new Error('City not supported by IMD');
-
-    const response = await axios.get(`${this.baseUrls.imd}/cityweather_loc.php`, {
-      params: {
-        latitude: cityInfo.lat,
-        longitude: cityInfo.lon
-      },
-      timeout: 10000
-    });
-
-    const data = response.data;
+  // Determine safety level from edge function data
+  private determineSafetyLevel(data: any): 'safe' | 'caution' | 'danger' {
+    const temp = data.temperature || data.temp || 25;
+    const wind = data.wind_speed || 0;
+    const rain = data.precipitation || data.rain || 0;
     
-    return {
-      temperature: Math.round(data.temperature || 25),
-      feelsLike: Math.round(data.feels_like || data.temperature || 25),
-      humidity: data.humidity || 60,
-      description: data.weather_desc || 'Clear',
-      windSpeed: Math.round(data.wind_speed || 5),
-      windDirection: data.wind_direction,
-      uvIndex: 0,
-      precipitation: data.precipitation || 0,
-      tempMin: Math.round(data.min_temp || data.temperature - 3),
-      tempMax: Math.round(data.max_temp || data.temperature + 3),
-      city: location.city,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      warnings: data.warnings || [],
-      safetyLevel: this.calculateIMDSafetyLevel(data),
-      forecast: []
-    };
+    if (temp > 42 || wind > 20 || rain > 20) {
+      return 'danger';
+    }
+    
+    if (temp > 35 || wind > 10 || rain > 5) {
+      return 'caution';
+    }
+    
+    return 'safe';
   }
 
   // Caching functions
@@ -460,47 +366,15 @@ class EnhancedWeatherService {
     }
   }
 
-  // Disaster alerts
+  // Disaster alerts (simplified - to be enhanced with secure backend integration)
   async getDisasterAlerts(location: LocationData): Promise<DisasterAlert[]> {
     const alerts: DisasterAlert[] = [];
     
     try {
-      // Check IMD warnings if available
-      const cityInfo = this.cityDatabase[location.city as keyof typeof this.cityDatabase];
-      if (cityInfo) {
-        const warningsResponse = await axios.get(
-          `${this.baseUrls.imdMausam}/warnings_district_api.php?id=${Math.floor(cityInfo.id / 1000)}`,
-          { timeout: 5000 }
-        );
-
-        if (warningsResponse.data?.warnings) {
-          warningsResponse.data.warnings.forEach((warning: any) => {
-            alerts.push({
-              type: this.classifyWarningType(warning.description || warning.title),
-              severity: this.calculateSeverity(warning),
-              location: location.city,
-              description: warning.description || warning.title,
-              timestamp: new Date()
-            });
-          });
-        }
-      }
-
-      // Check rainfall data for flood risk
-      try {
-        const rainfallResponse = await axios.get(
-          `${this.baseUrls.imdMausam}/districtwise_rainfall_api.php`,
-          { timeout: 5000 }
-        );
-        
-        if (rainfallResponse.data) {
-          const floodRisk = this.analyzeFloodRisk(rainfallResponse.data, location.city);
-          if (floodRisk) alerts.push(floodRisk);
-        }
-      } catch (error) {
-        console.warn('Rainfall API unavailable');
-      }
-
+      // For now, return empty array
+      // Future enhancement: Integrate with secure government API endpoints via edge functions
+      console.log('Disaster alerts check for:', location.city);
+      
     } catch (error) {
       console.error('Disaster alerts error:', error);
     }
