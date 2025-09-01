@@ -20,6 +20,7 @@ export type Database = {
           city_id: number | null
           country: string | null
           created_at: string | null
+          fcm_token: string | null
           id: string
           last_updated: string | null
           latitude: number | null
@@ -32,6 +33,7 @@ export type Database = {
           city_id?: number | null
           country?: string | null
           created_at?: string | null
+          fcm_token?: string | null
           id?: string
           last_updated?: string | null
           latitude?: number | null
@@ -44,6 +46,7 @@ export type Database = {
           city_id?: number | null
           country?: string | null
           created_at?: string | null
+          fcm_token?: string | null
           id?: string
           last_updated?: string | null
           latitude?: number | null
@@ -119,6 +122,10 @@ export type Database = {
     }
     Functions: {
       clean_expired_weather_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_expired_weather_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
