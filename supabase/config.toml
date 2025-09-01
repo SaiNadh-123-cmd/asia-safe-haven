@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.weather]
 verify_jwt = false
+
+[functions.notifications]
+verify_jwt = false

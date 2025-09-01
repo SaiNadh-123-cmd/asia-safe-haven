@@ -14,6 +14,7 @@ interface LocationSelectorProps {
 
 export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const handleLocationSelect = async (location: LocationData) => {
     setIsLoading(true);
@@ -47,6 +48,56 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
       console.error('Error handling location selection:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCurrentLocation = async () => {
+    setLocationLoading(true);
+    
+    try {
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser');
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Use enhanced weather service for reverse geocoding
+      const { enhancedWeatherService } = await import('@/services/enhancedWeatherService');
+      const locationData = await enhancedWeatherService.reverseGeocode(latitude, longitude);
+      
+      if (locationData) {
+        await handleLocationSelect(locationData);
+      } else {
+        throw new Error('Unable to determine your location. Please select manually.');
+      }
+      
+    } catch (error: any) {
+      console.error('Geolocation error:', error);
+      
+      let errorMessage = 'Unable to get your location. ';
+      if (error.code === 1) {
+        errorMessage += 'Location access was denied. Please enable location permissions and try again, or select your location manually.';
+      } else if (error.code === 2) {
+        errorMessage += 'Your location is currently unavailable. Please try again or select your location manually.';
+      } else if (error.code === 3) {
+        errorMessage += 'Location request timed out. Please try again or select your location manually.';
+      } else {
+        errorMessage += error.message || 'Please select your location manually.';
+      }
+      
+      // You could show a toast notification here
+      alert(errorMessage);
+      
+    } finally {
+      setLocationLoading(false);
     }
   };
 
@@ -123,12 +174,40 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
                   placeholder="Type city name, village, or area..."
                 />
               </div>
+              
+              {/* Current Location Button */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-center"
+              >
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="w-full h-12 hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  onClick={handleCurrentLocation}
+                  disabled={locationLoading || isLoading}
+                >
+                  {locationLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
+                      Getting your location...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="h-4 w-4 mr-2" />
+                      Use My Current Location
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.7 }}
               className="text-center"
             >
               <span className="text-sm text-muted-foreground">or choose from popular cities</span>
@@ -138,7 +217,7 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.8 }}
               className="space-y-3"
             >
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -147,7 +226,7 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
                     key={city}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.8 + index * 0.1 }}
+                    transition={{ delay: 0.9 + index * 0.1 }}
                   >
                     <Button
                       variant="outline"
@@ -167,7 +246,7 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
+              transition={{ delay: 1.2 }}
               className="text-center text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg"
             >
               🔒 Your location data is encrypted and used only for providing relevant disaster alerts. 
