@@ -68,7 +68,7 @@ async function enhancedReverseGeocode(lat: number, lon: number): Promise<any> {
   try {
     // Try OpenWeatherMap reverse geocoding first
     const owmResponse = await fetch(
-      `http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`
+      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`
     );
 
     if (owmResponse.ok) {

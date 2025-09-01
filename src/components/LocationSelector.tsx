@@ -74,6 +74,19 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
       const locationData = await enhancedWeatherService.reverseGeocode(latitude, longitude);
       
       if (locationData) {
+        // Show exact location or nearest town with distance
+        let displayMessage = '';
+        const anyLocationData = locationData as any;
+        
+        if (anyLocationData.distanceToNearestTown && anyLocationData.nearestTown) {
+          displayMessage = `📍 Nearest: ${anyLocationData.nearestTown} (${Math.round(anyLocationData.distanceToNearestTown)}km away)`;
+          // Show a toast or alert with the distance info
+          console.log(`Using nearest town: ${anyLocationData.nearestTown} (${Math.round(anyLocationData.distanceToNearestTown)}km from your exact location)`);
+        } else {
+          displayMessage = `📍 Exact: ${locationData.city}`;
+          console.log(`Using exact location: ${locationData.city}`);
+        }
+        
         await handleLocationSelect(locationData);
       } else {
         throw new Error('Unable to determine your location. Please select manually.');

@@ -57,6 +57,18 @@ export class NotificationService {
         throw response.error;
       }
 
+      // Also update user profile directly for immediate use
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: session.user.id,
+          fcm_token: token
+        });
+
+      if (updateError) {
+        console.error('Error updating user profile with FCM token:', updateError);
+      }
+
       this.fcmToken = token;
       console.log('FCM token registered successfully');
       return true;

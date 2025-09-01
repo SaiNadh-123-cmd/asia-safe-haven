@@ -50,7 +50,7 @@ class EnhancedWeatherService {
   
   private baseUrls = {
     openWeather: 'https://api.openweathermap.org/data/2.5',
-    openWeatherGeo: 'http://api.openweathermap.org/geo/1.0',
+    openWeatherGeo: 'https://api.openweathermap.org/geo/1.0',
     weatherApi: 'https://weather.indianapi.in',
     imd: 'https://city.imd.gov.in/api',
     imdMausam: 'https://mausam.imd.gov.in/api',
