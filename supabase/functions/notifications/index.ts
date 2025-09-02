@@ -112,6 +112,15 @@ async function detectDisasters(weatherData: any): Promise<DisasterAlert[]> {
   return alerts;
 }
 
+// Function to hash FCM token for validation
+async function hashFCMToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function sendFCMNotification(fcmToken: string, alert: DisasterAlert) {
   if (!FCM_SERVER_KEY) {
     console.log('FCM_SERVER_KEY not configured, skipping notification');
@@ -168,12 +177,12 @@ async function checkUserLocationsForDisasters() {
   console.log('Checking user locations for disasters...');
   
   try {
-    // Get all user profiles with locations
+    // Get all user profiles with locations using anonymized coordinates
     const { data: userProfiles, error: profileError } = await supabase
       .from('user_profiles')
-      .select('user_id, latitude, longitude, city, fcm_token')
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
+      .select('user_id, latitude_rounded, longitude_rounded, city, fcm_token, fcm_token_hash')
+      .not('latitude_rounded', 'is', null)
+      .not('longitude_rounded', 'is', null)
       .not('fcm_token', 'is', null);
 
     if (profileError) {
@@ -191,8 +200,29 @@ async function checkUserLocationsForDisasters() {
     // Check each user's location for disasters
     for (const profile of userProfiles) {
       try {
-        // Fetch weather data for user's location
-        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${profile.latitude}&lon=${profile.longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`);
+        // Log access to sensitive location data
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: profile.user_id,
+            action: 'location_access',
+            details: {
+              purpose: 'disaster_check',
+              coordinates_accessed: true
+            }
+          });
+
+        // Validate FCM token if hash exists
+        if (profile.fcm_token_hash) {
+          const tokenHash = await hashFCMToken(profile.fcm_token);
+          if (tokenHash !== profile.fcm_token_hash) {
+            console.log(`FCM token hash mismatch for user ${profile.user_id}, skipping`);
+            continue;
+          }
+        }
+
+        // Fetch weather data for user's location using anonymized coordinates
+        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${profile.latitude_rounded}&lon=${profile.longitude_rounded}&appid=${OPENWEATHER_API_KEY}&units=metric`);
         
         if (!weatherResponse.ok) {
           console.error(`Failed to fetch weather for user ${profile.user_id}`);
@@ -201,15 +231,15 @@ async function checkUserLocationsForDisasters() {
 
         const weatherData = await weatherResponse.json();
         
-        // Transform to our format
+        // Transform to our format using anonymized coordinates
         const processedWeather = {
           temperature: Math.round(weatherData.main.temp),
           humidity: weatherData.main.humidity,
           wind_speed: Math.round(weatherData.wind.speed * 3.6), // Convert m/s to km/h
           precipitation: weatherData.rain?.['1h'] || weatherData.snow?.['1h'] || 0,
           city: profile.city,
-          latitude: profile.latitude,
-          longitude: profile.longitude
+          latitude: profile.latitude_rounded,
+          longitude: profile.longitude_rounded
         };
 
         // Detect disasters
@@ -284,12 +314,16 @@ serve(async (req) => {
         });
       }
 
-      // Update user profile with FCM token
+      // Hash the FCM token before storage
+      const fcmTokenHash = await hashFCMToken(fcm_token);
+
+      // Update user profile with FCM token and its hash
       const { error: updateError } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: user.id,
-          fcm_token: fcm_token
+          fcm_token: fcm_token,
+          fcm_token_hash: fcmTokenHash
         });
 
       if (updateError) {

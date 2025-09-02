@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          details: Json | null
+          id: string
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          details?: Json | null
+          id?: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          details?: Json | null
+          id?: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           city: string | null
@@ -21,10 +45,13 @@ export type Database = {
           country: string | null
           created_at: string | null
           fcm_token: string | null
+          fcm_token_hash: string | null
           id: string
           last_updated: string | null
           latitude: number | null
+          latitude_rounded: number | null
           longitude: number | null
+          longitude_rounded: number | null
           state: string | null
           user_id: string | null
         }
@@ -34,10 +61,13 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           fcm_token?: string | null
+          fcm_token_hash?: string | null
           id?: string
           last_updated?: string | null
           latitude?: number | null
+          latitude_rounded?: number | null
           longitude?: number | null
+          longitude_rounded?: number | null
           state?: string | null
           user_id?: string | null
         }
@@ -47,10 +77,13 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           fcm_token?: string | null
+          fcm_token_hash?: string | null
           id?: string
           last_updated?: string | null
           latitude?: number | null
+          latitude_rounded?: number | null
           longitude?: number | null
+          longitude_rounded?: number | null
           state?: string | null
           user_id?: string | null
         }
@@ -128,6 +161,10 @@ export type Database = {
       cleanup_expired_weather_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      hash_fcm_token: {
+        Args: { token: string }
+        Returns: string
       }
     }
     Enums: {

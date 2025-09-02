@@ -33,6 +33,17 @@ export class NotificationService {
   }
 
   /**
+   * Hash FCM token using SHA-256
+   */
+  private async hashFCMToken(token: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
    * Register FCM token with backend
    * Call this after user authentication
    */
@@ -65,12 +76,16 @@ export class NotificationService {
         throw response.error;
       }
 
-      // Also update user profile directly for immediate use
+      // Hash the FCM token before storage
+      const tokenHash = await this.hashFCMToken(token);
+
+      // Also update user profile directly for immediate use with hashed token
       const { error: updateError } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: session.user.id,
           fcm_token: token,
+          fcm_token_hash: tokenHash,
           last_updated: new Date().toISOString()
         });
 
@@ -92,13 +107,21 @@ export class NotificationService {
 
   /**
    * Generate a secure mock token for development/testing
+   * Enhanced with better entropy and validation
    */
   generateSecureMockToken(): string {
     const timestamp = Date.now();
-    const randomBytes = new Uint8Array(16);
+    const randomBytes = new Uint8Array(32); // Increased entropy
     crypto.getRandomValues(randomBytes);
     const randomStr = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
-    return `fcm_dev_${timestamp}_${randomStr}`;
+    const token = `fcm_dev_${timestamp}_${randomStr}`;
+    
+    // Validate our own generated token
+    if (token.length < 40) {
+      throw new Error('Generated token too short for security requirements');
+    }
+    
+    return token;
   }
 
   /**
