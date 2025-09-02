@@ -209,8 +209,7 @@ class EnhancedWeatherService {
         weatherData = this.getFallbackWeather(location);
       }
 
-      // Cache the result
-      await this.cacheWeather(weatherData);
+      // Don't cache on client side - edge function handles caching with service_role
       
       return weatherData;
 
@@ -341,30 +340,8 @@ class EnhancedWeatherService {
     }
   }
 
-  private async cacheWeather(weather: WeatherData): Promise<void> {
-    try {
-      await supabase
-        .from('weather_cache')
-        .insert({
-          latitude: parseFloat(weather.latitude.toFixed(6)),
-          longitude: parseFloat(weather.longitude.toFixed(6)),
-          city: weather.city,
-          temperature: weather.temperature,
-          feels_like: weather.feelsLike,
-          humidity: weather.humidity,
-          wind_speed: weather.windSpeed,
-          wind_direction: weather.windDirection,
-          weather_condition: weather.description,
-          uv_index: weather.uvIndex,
-          precipitation: weather.precipitation,
-          temp_min: weather.tempMin,
-          temp_max: weather.tempMax,
-          forecast_data: weather.forecast as any
-        });
-    } catch (error) {
-      console.error('Cache storage error:', error);
-    }
-  }
+  // Remove client-side caching - edge function handles caching with proper permissions
+  // This prevents RLS policy violations since only service_role can insert into weather_cache
 
   // Disaster alerts (simplified - to be enhanced with secure backend integration)
   async getDisasterAlerts(location: LocationData): Promise<DisasterAlert[]> {
