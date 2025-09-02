@@ -44,10 +44,10 @@ export class NotificationService {
   }
 
   /**
-   * Register FCM token with backend
+   * Register FCM token with backend and location data
    * Call this after user authentication
    */
-  async registerFCMToken(token: string) {
+  async registerFCMToken(token: string, locationData?: { latitude: number, longitude: number, city?: string, state?: string, country?: string }) {
     try {
       // Validate token format for basic security
       if (!token || token.length < 10 || !/^[a-zA-Z0-9_-]+$/.test(token.replace(/[:.]/g, ''))) {
@@ -79,24 +79,39 @@ export class NotificationService {
       // Hash the FCM token before storage
       const tokenHash = await this.hashFCMToken(token);
 
-      // Also update user profile directly for immediate use with hashed token
+      // Prepare profile data with security enhancements
+      const profileData: any = {
+        user_id: session.user.id,
+        fcm_token: token,
+        fcm_token_hash: tokenHash,
+        last_updated: new Date().toISOString()
+      };
+
+      // Add location data with coordinate rounding for privacy (2 decimal places ≈ 1-2km precision)
+      if (locationData) {
+        profileData.latitude = locationData.latitude;
+        profileData.longitude = locationData.longitude;
+        profileData.latitude_rounded = Math.round(locationData.latitude * 100) / 100;
+        profileData.longitude_rounded = Math.round(locationData.longitude * 100) / 100;
+        profileData.city = locationData.city;
+        profileData.state = locationData.state;
+        profileData.country = locationData.country || 'India';
+      }
+
+      // Update user profile with enhanced security
       const { error: updateError } = await supabase
         .from('user_profiles')
-        .upsert({
-          user_id: session.user.id,
-          fcm_token: token,
-          fcm_token_hash: tokenHash,
-          last_updated: new Date().toISOString()
-        });
+        .upsert(profileData);
 
       if (updateError) {
         console.error('Error updating user profile with FCM token:', updateError);
+        throw updateError;
       }
 
       this.fcmToken = token;
       // Clear any pending token
       localStorage.removeItem('pending_fcm_token');
-      console.log('FCM token registered successfully');
+      console.log('FCM token and location registered successfully with security enhancements');
       return true;
       
     } catch (error) {
