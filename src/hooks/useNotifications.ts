@@ -5,7 +5,7 @@ import { notificationService } from '@/services/notificationService';
 interface UseNotificationsReturn {
   notificationsEnabled: boolean;
   requestPermission: () => Promise<boolean>;
-  registerToken: (token: string) => Promise<boolean>;
+  registerToken: (token: string, locationData?: { latitude: number, longitude: number, city?: string, state?: string, country?: string }) => Promise<boolean>;
   triggerCheck: () => Promise<void>;
 }
 
@@ -33,9 +33,9 @@ export const useNotifications = (): UseNotificationsReturn => {
     }
   };
 
-  const registerToken = async (token: string): Promise<boolean> => {
+  const registerToken = async (token: string, locationData?: { latitude: number, longitude: number, city?: string, state?: string, country?: string }): Promise<boolean> => {
     try {
-      const success = await notificationService.registerFCMToken(token);
+      const success = await notificationService.registerFCMToken(token, locationData);
       return success;
     } catch (error) {
       console.error('Failed to register FCM token:', error);

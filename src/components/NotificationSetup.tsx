@@ -5,6 +5,7 @@ import { Bell, BellOff, CheckCircle, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
+import { notificationService } from '@/services/notificationService';
 import interfaceBg from "@/assets/interface_bg.jpg";
 
 interface NotificationSetupProps {
@@ -28,41 +29,82 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
     setIsLoading(true);
     
     try {
-      const granted = await requestPermission();
+      // Request permission first
+      const permissionGranted = await requestPermission();
       
-      if (granted) {
-        // In a real app, you would get the FCM token from Firebase SDK
-        // For now, we'll generate a secure mock token for development
-        const mockToken = `fcm_dev_${Date.now()}_${crypto.getRandomValues(new Uint32Array(1))[0].toString(16)}`;
-        
-        const registered = await registerToken(mockToken);
-        
-        if (registered) {
-          setSetupComplete(true);
-          toast({
-            title: "Notifications Enabled",
-            description: "You'll receive disaster alerts based on your location.",
-            duration: 3000,
-          });
-          onComplete?.();
-        } else {
-          throw new Error('Failed to register for notifications');
-        }
-      } else {
+      if (!permissionGranted) {
         toast({
           title: "Permission Denied",
-          description: "Please enable notifications in your browser settings to receive disaster alerts.",
+          description: "Please allow notifications to receive disaster alerts.",
           variant: "destructive",
-          duration: 5000,
         });
+        return;
       }
+
+      // Get user's location for enhanced security and weather monitoring
+      let locationData: { latitude: number, longitude: number, city?: string, state?: string, country?: string } | undefined;
+      
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 300000 // 5 minutes
+            });
+          });
+          
+          locationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            country: 'India' // Default, can be enhanced with reverse geocoding
+          };
+          
+          // Optional: Add reverse geocoding to get city/state
+          try {
+            const geocodeResponse = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&limit=1&appid=c539305eb1479c8064edb1b01ced63d9`);
+            if (geocodeResponse.ok) {
+              const geocodeData = await geocodeResponse.json();
+              if (geocodeData && geocodeData.length > 0) {
+                locationData.city = geocodeData[0].name;
+                locationData.state = geocodeData[0].state;
+                locationData.country = geocodeData[0].country;
+              }
+            }
+          } catch (geocodeError) {
+            console.log('Geocoding failed, using coordinates only');
+          }
+          
+        } catch (locationError) {
+          console.log('Location access denied or unavailable, registering without location');
+        }
+      }
+
+      // Generate secure mock token for development
+      const mockToken = notificationService.generateSecureMockToken();
+      
+      // Register token with location data for enhanced security
+      const success = await registerToken(mockToken, locationData);
+      
+      if (success) {
+        setSetupComplete(true);
+        toast({
+          title: "Notifications Enabled! 🔔",
+          description: locationData 
+            ? `You'll receive disaster alerts for ${locationData.city || 'your area'}. Location data secured with privacy protection.`
+            : "You'll receive disaster alerts. Consider enabling location for area-specific warnings.",
+        });
+        onComplete?.();
+      } else {
+        throw new Error('Failed to register notification token');
+      }
+      
     } catch (error) {
-      console.error('Notification setup error:', error);
+      console.error('Error enabling notifications:', error);
       toast({
         title: "Setup Failed",
         description: "Failed to enable notifications. Please try again.",
         variant: "destructive",
-        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -204,7 +246,7 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
           </div>
           
           <p className="text-xs text-muted-foreground text-center">
-            🔒 We respect your privacy. Notifications are sent only for your selected location and you can disable them anytime in settings.
+            🔒 Enhanced privacy protection: GPS coordinates are automatically rounded to ~1-2km precision, FCM tokens are securely hashed, and all access is logged for security auditing.
           </p>
         </CardContent>
       </Card>
