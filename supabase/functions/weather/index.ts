@@ -12,7 +12,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_ANON_KEY') ?? '',
 );
 
-const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHERMAP_API_KEY') || 'c539305eb1479c8064edb1b01ced63d9';
+const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHERMAP_API_KEY');
 
 // Major Indian cities with coordinates and IDs for IMD compatibility
 const cityDatabase = {
@@ -66,40 +66,42 @@ function findNearestIMDCity(lat: number, lon: number): { name: string; distance:
 // Enhanced reverse geocoding
 async function enhancedReverseGeocode(lat: number, lon: number): Promise<any> {
   try {
-    // Try OpenWeatherMap reverse geocoding first
-    const owmResponse = await fetch(
-      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`
-    );
+    // Try OpenWeatherMap reverse geocoding first (only if API key is available)
+    if (OPENWEATHER_API_KEY) {
+      const owmResponse = await fetch(
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`
+      );
 
-    if (owmResponse.ok) {
-      const owmData = await owmResponse.json();
-      if (owmData && owmData.length > 0) {
-        const location = owmData[0];
-        const result = {
-          city: location.name,
-          state: location.state,
-          country: location.country,
-          latitude: lat,
-          longitude: lon
-        };
+      if (owmResponse.ok) {
+        const owmData = await owmResponse.json();
+        if (owmData && owmData.length > 0) {
+          const location = owmData[0];
+          const result = {
+            city: location.name,
+            state: location.state,
+            country: location.country,
+            latitude: lat,
+            longitude: lon
+          };
 
-        // Check if we need to snap to nearest IMD city
-        const nearest = findNearestIMDCity(lat, lon);
-        if (nearest.distance > 50) {
-          result.cityId = nearest.id;
-          result.distanceToNearestTown = nearest.distance;
-          result.nearestTown = nearest.name;
-        } else {
-          // Check if current city is in IMD database
-          const cityKey = Object.keys(cityDatabase).find(key => 
-            key.toLowerCase() === result.city.toLowerCase()
-          );
-          if (cityKey) {
-            result.cityId = cityDatabase[cityKey].id;
+          // Check if we need to snap to nearest IMD city
+          const nearest = findNearestIMDCity(lat, lon);
+          if (nearest.distance > 50) {
+            result.cityId = nearest.id;
+            result.distanceToNearestTown = nearest.distance;
+            result.nearestTown = nearest.name;
+          } else {
+            // Check if current city is in IMD database
+            const cityKey = Object.keys(cityDatabase).find(key => 
+              key.toLowerCase() === result.city.toLowerCase()
+            );
+            if (cityKey) {
+              result.cityId = cityDatabase[cityKey].id;
+            }
           }
-        }
 
-        return result;
+          return result;
+        }
       }
     }
 
@@ -181,65 +183,69 @@ serve(async (req) => {
 
     let weatherData = null;
 
-    // Try OpenWeatherMap first
-    try {
-      console.log('Trying OpenWeatherMap API');
-      
-      const [currentResponse, forecastResponse] = await Promise.all([
-        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`),
-        fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`)
-      ]);
+    // Try OpenWeatherMap first (only if API key is available)
+    if (OPENWEATHER_API_KEY) {
+      try {
+        console.log('Trying OpenWeatherMap API');
+        
+        const [currentResponse, forecastResponse] = await Promise.all([
+          fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`),
+          fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`)
+        ]);
 
-      if (currentResponse.ok && forecastResponse.ok) {
-        const current = await currentResponse.json();
-        const forecast = await forecastResponse.json();
+        if (currentResponse.ok && forecastResponse.ok) {
+          const current = await currentResponse.json();
+          const forecast = await forecastResponse.json();
 
-        // Process 7-day forecast
-        const forecastData = [];
-        const dailyForecast = new Map();
+          // Process 7-day forecast
+          const forecastData = [];
+          const dailyForecast = new Map();
 
-        forecast.list.forEach((item: any) => {
-          const date = new Date(item.dt * 1000).toDateString();
-          if (!dailyForecast.has(date)) {
-            dailyForecast.set(date, {
-              date,
-              tempMax: item.main.temp_max,
-              tempMin: item.main.temp_min,
-              condition: item.weather[0].description,
-              precipitation: item.rain?.['3h'] || 0
-            });
-          }
-        });
+          forecast.list.forEach((item: any) => {
+            const date = new Date(item.dt * 1000).toDateString();
+            if (!dailyForecast.has(date)) {
+              dailyForecast.set(date, {
+                date,
+                tempMax: item.main.temp_max,
+                tempMin: item.main.temp_min,
+                condition: item.weather[0].description,
+                precipitation: item.rain?.['3h'] || 0
+              });
+            }
+          });
 
-        forecastData.push(...Array.from(dailyForecast.values()).slice(0, 7));
+          forecastData.push(...Array.from(dailyForecast.values()).slice(0, 7));
 
-        weatherData = {
-          temperature: Math.round(current.main.temp),
-          feels_like: Math.round(current.main.feels_like),
-          humidity: current.main.humidity,
-          weather_condition: current.weather[0].description,
-          wind_speed: Math.round(current.wind.speed * 3.6), // Convert m/s to km/h
-          wind_direction: current.wind.deg,
-          uv_index: 0, // Not available in free tier
-          precipitation: current.rain?.['1h'] || current.snow?.['1h'] || 0,
-          temp_min: Math.round(current.main.temp_min),
-          temp_max: Math.round(current.main.temp_max),
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-          city: locationData.city,
-          forecast_data: forecastData,
-          source: 'openweathermap',
-          // Add distance info if showing nearest town
-          ...(locationData.distanceToNearestTown && {
-            distanceToNearestTown: locationData.distanceToNearestTown,
-            nearestTown: locationData.nearestTown
-          })
-        };
+          weatherData = {
+            temperature: Math.round(current.main.temp),
+            feels_like: Math.round(current.main.feels_like),
+            humidity: current.main.humidity,
+            weather_condition: current.weather[0].description,
+            wind_speed: Math.round(current.wind.speed * 3.6), // Convert m/s to km/h
+            wind_direction: current.wind.deg,
+            uv_index: 0, // Not available in free tier
+            precipitation: current.rain?.['1h'] || current.snow?.['1h'] || 0,
+            temp_min: Math.round(current.main.temp_min),
+            temp_max: Math.round(current.main.temp_max),
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            city: locationData.city,
+            forecast_data: forecastData,
+            source: 'openweathermap',
+            // Add distance info if showing nearest town
+            ...(locationData.distanceToNearestTown && {
+              distanceToNearestTown: locationData.distanceToNearestTown,
+              nearestTown: locationData.nearestTown
+            })
+          };
 
-        console.log('OpenWeatherMap data retrieved successfully');
+          console.log('OpenWeatherMap data retrieved successfully');
+        }
+      } catch (error) {
+        console.log('OpenWeatherMap failed:', error.message);
       }
-    } catch (error) {
-      console.log('OpenWeatherMap failed:', error.message);
+    } else {
+      console.log('OpenWeatherMap API key not available, skipping to Open-Meteo');
     }
 
     // Fallback to Open-Meteo
