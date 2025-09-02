@@ -375,6 +375,18 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
           handleViewStories(detailsModal.disaster);
         }}
       />
+      
+      {/* Developer Credit Footer */}
+      <footer className="text-center py-8 mt-12 relative z-10">
+        <div className="space-y-2">
+          <p className="developer-credit text-lg font-semibold">
+            Developed by Sai Nadh
+          </p>
+          <p className="developer-credit text-sm">
+            All rights reserved
+          </p>
+        </div>
+      </footer>
     </motion.div>
   );
 };
