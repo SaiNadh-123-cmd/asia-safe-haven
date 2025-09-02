@@ -166,10 +166,6 @@ export type Database = {
         Args: { token: string }
         Returns: string
       }
-      log_and_authorize_profile_access: {
-        Args: { profile_user_id: string }
-        Returns: boolean
-      }
     }
     Enums: {
       [_ in never]: never
