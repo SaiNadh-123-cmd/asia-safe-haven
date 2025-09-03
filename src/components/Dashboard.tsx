@@ -254,9 +254,32 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-8 relative z-10">
-        {/* Weather Stats */}
+        {/* Weather Stats with Error Handling */}
         {weatherData && (
           <WeatherStats weatherData={weatherData} />
+        )}
+        
+        {!weatherData && !isLoading && (
+          <Card className="bg-destructive/10 border-destructive/20">
+            <CardContent className="flex items-center gap-3 p-6">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-destructive">Weather Data Unavailable</h3>
+                <p className="text-sm text-muted-foreground">
+                  Unable to fetch weather information. Retrying...
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchData}
+                disabled={isLoading || !isOnline}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* Safety Status */}

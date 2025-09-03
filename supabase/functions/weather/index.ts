@@ -139,6 +139,70 @@ async function enhancedReverseGeocode(lat: number, lon: number): Promise<any> {
   return null;
 }
 
+// Utility function for API retries with exponential backoff
+async function retryApiCall(apiCall: () => Promise<Response>, maxRetries: number = 3): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`API call attempt ${attempt}/${maxRetries}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await apiCall().then(res => {
+        clearTimeout(timeoutId);
+        return res;
+      });
+      
+      // Check for rate limit (429) or server errors (500, 502, 503)
+      if (response.status === 429 || response.status >= 500) {
+        throw new Error(`API returned status ${response.status}`);
+      }
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      throw new Error(`API call failed with status ${response.status}`);
+      
+    } catch (error: any) {
+      lastError = error;
+      console.log(`Attempt ${attempt} failed:`, error.message);
+      
+      // Don't retry on final attempt
+      if (attempt === maxRetries) break;
+      
+      // Wait before retry (exponential backoff: 2s, 4s, 8s)
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`Waiting ${delay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError || new Error('All retry attempts failed');
+}
+
+// Function to log errors to audit_logs
+async function logError(action: string, details: any, userId?: string) {
+  try {
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        user_id: userId || null,
+        action,
+        details: typeof details === 'string' ? { message: details } : details,
+        timestamp: new Date().toISOString()
+      });
+    
+    if (error) {
+      console.error('Failed to log error:', error);
+    }
+  } catch (e) {
+    console.error('Failed to log error to audit_logs:', e);
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -183,19 +247,18 @@ serve(async (req) => {
 
     let weatherData = null;
 
-    // Try OpenWeatherMap first (only if API key is available)
+    // Try OpenWeatherMap first with retry logic (only if API key is available)
     if (OPENWEATHER_API_KEY) {
       try {
-        console.log('Trying OpenWeatherMap API');
+        console.log('Trying OpenWeatherMap API with retry logic');
         
         const [currentResponse, forecastResponse] = await Promise.all([
-          fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`),
-          fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`)
+          retryApiCall(() => fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`)),
+          retryApiCall(() => fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric`))
         ]);
 
-        if (currentResponse.ok && forecastResponse.ok) {
-          const current = await currentResponse.json();
-          const forecast = await forecastResponse.json();
+        const current = await currentResponse.json();
+        const forecast = await forecastResponse.json();
 
           // Process 7-day forecast
           const forecastData = [];
@@ -241,19 +304,29 @@ serve(async (req) => {
 
           console.log('OpenWeatherMap data retrieved successfully');
         }
-      } catch (error) {
-        console.log('OpenWeatherMap failed:', error.message);
+      } catch (error: any) {
+        console.log('OpenWeatherMap failed after retries:', error.message);
+        await logError('weather_fetch_failed', {
+          source: 'openweathermap',
+          location: locationData.city,
+          latitude,
+          longitude,
+          error: error.message,
+          retries_exhausted: true
+        });
       }
     } else {
       console.log('OpenWeatherMap API key not available, skipping to Open-Meteo');
     }
 
-    // Fallback to Open-Meteo
+    // Fallback to Open-Meteo with retry logic
     if (!weatherData) {
       try {
-        console.log('Trying Open-Meteo API');
+        console.log('Trying Open-Meteo API with retry logic');
         
-        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=Asia/Kolkata&forecast_days=7`);
+        const response = await retryApiCall(() => 
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=Asia/Kolkata&forecast_days=7`)
+        );
         
         if (response.ok) {
           const data = await response.json();
@@ -292,20 +365,38 @@ serve(async (req) => {
           };
 
           console.log('Open-Meteo data retrieved successfully');
+        } else {
+          throw new Error(`Open-Meteo API returned status ${response.status}`);
         }
-      } catch (error) {
-        console.log('Open-Meteo failed:', error.message);
+      } catch (error: any) {
+        console.log('Open-Meteo failed after retries:', error.message);
+        await logError('weather_fetch_failed', {
+          source: 'open-meteo',
+          location: locationData.city,
+          latitude,
+          longitude,
+          error: error.message,
+          retries_exhausted: true
+        });
       }
     }
 
-    // Final fallback
+    // Final fallback with error logging
     if (!weatherData) {
-      console.log('Using fallback weather data');
+      console.log('All weather APIs failed, using fallback data');
+      await logError('weather_fetch_failed', {
+        source: 'all_apis_failed',
+        location: locationData.city,
+        latitude,
+        longitude,
+        fallback_used: true
+      });
+      
       weatherData = {
         temperature: 28,
         feels_like: 32,
         humidity: 65,
-        weather_condition: 'Partly Cloudy',
+        weather_condition: 'Data Unavailable',
         wind_speed: 8,
         wind_direction: 180,
         uv_index: 6,
@@ -317,6 +408,7 @@ serve(async (req) => {
         city: locationData.city,
         forecast_data: [],
         source: 'fallback',
+        error_message: 'Weather data unavailable, showing default values',
         // Add distance info if showing nearest town
         ...(locationData.distanceToNearestTown && {
           distanceToNearestTown: locationData.distanceToNearestTown,

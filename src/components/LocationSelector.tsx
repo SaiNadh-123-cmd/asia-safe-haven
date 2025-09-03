@@ -60,32 +60,58 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
         throw new Error('Geolocation is not supported by this browser');
       }
 
+      // Get current position with timeout
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutes
-        });
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Location request timed out. Please try again or select your location manually.'));
+        }, 10000);
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            clearTimeout(timeoutId);
+            resolve(pos);
+          },
+          (error) => {
+            clearTimeout(timeoutId);
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 300000 // 5 minutes
+          }
+        );
       });
 
       const { latitude, longitude } = position.coords;
+      console.log('Geolocation successful:', latitude, longitude);
       
-      // Use enhanced weather service for reverse geocoding
-      const { enhancedWeatherService } = await import('@/services/enhancedWeatherService');
-      const locationData = await enhancedWeatherService.reverseGeocode(latitude, longitude);
+      // Use the new geocode edge function for better timeout handling
+      const { supabase } = await import('@/integrations/supabase/client');
+      const response = await supabase.functions.invoke('geocode', {
+        body: { latitude, longitude }
+      });
       
-      if (locationData) {
+      if (response.error) {
+        throw new Error(`Geocoding failed: ${response.error.message}`);
+      }
+      
+      if (response.data?.success && response.data?.data) {
+        const locationData = response.data.data;
+        
         // Show exact location or nearest town with distance
         let displayMessage = '';
-        const anyLocationData = locationData as any;
         
-        if (anyLocationData.distanceToNearestTown && anyLocationData.nearestTown) {
-          displayMessage = `📍 Nearest: ${anyLocationData.nearestTown} (${Math.round(anyLocationData.distanceToNearestTown)}km away)`;
-          // Show a toast or alert with the distance info
-          console.log(`Using nearest town: ${anyLocationData.nearestTown} (${Math.round(anyLocationData.distanceToNearestTown)}km from your exact location)`);
+        if (locationData.distanceToNearestTown && locationData.nearestTown) {
+          displayMessage = `📍 Nearest: ${locationData.nearestTown} (${Math.round(locationData.distanceToNearestTown)}km away)`;
+          console.log(`Using nearest town: ${locationData.nearestTown} (${Math.round(locationData.distanceToNearestTown)}km from your exact location)`);
         } else {
           displayMessage = `📍 Exact: ${locationData.city}`;
           console.log(`Using exact location: ${locationData.city}`);
+        }
+        
+        if (response.data.warning) {
+          console.log('Geocoding warning:', response.data.warning);
         }
         
         await handleLocationSelect(locationData);
@@ -94,20 +120,20 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
       }
       
     } catch (error: any) {
-      console.error('Geolocation error:', error);
+      console.error('Location error:', error);
       
       let errorMessage = 'Unable to get your location. ';
+      
       if (error.code === 1) {
         errorMessage += 'Location access was denied. Please enable location permissions and try again, or select your location manually.';
       } else if (error.code === 2) {
         errorMessage += 'Your location is currently unavailable. Please try again or select your location manually.';
-      } else if (error.code === 3) {
+      } else if (error.code === 3 || error.message.includes('timeout')) {
         errorMessage += 'Location request timed out. Please try again or select your location manually.';
       } else {
         errorMessage += error.message || 'Please select your location manually.';
       }
       
-      // You could show a toast notification here
       alert(errorMessage);
       
     } finally {
