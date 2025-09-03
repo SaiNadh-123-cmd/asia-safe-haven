@@ -260,50 +260,49 @@ serve(async (req) => {
         const current = await currentResponse.json();
         const forecast = await forecastResponse.json();
 
-          // Process 7-day forecast
-          const forecastData = [];
-          const dailyForecast = new Map();
+        // Process 7-day forecast
+        const forecastData = [];
+        const dailyForecast = new Map();
 
-          forecast.list.forEach((item: any) => {
-            const date = new Date(item.dt * 1000).toDateString();
-            if (!dailyForecast.has(date)) {
-              dailyForecast.set(date, {
-                date,
-                tempMax: item.main.temp_max,
-                tempMin: item.main.temp_min,
-                condition: item.weather[0].description,
-                precipitation: item.rain?.['3h'] || 0
-              });
-            }
-          });
+        forecast.list.forEach((item: any) => {
+          const date = new Date(item.dt * 1000).toDateString();
+          if (!dailyForecast.has(date)) {
+            dailyForecast.set(date, {
+              date,
+              tempMax: item.main.temp_max,
+              tempMin: item.main.temp_min,
+              condition: item.weather[0].description,
+              precipitation: item.rain?.['3h'] || 0
+            });
+          }
+        });
 
-          forecastData.push(...Array.from(dailyForecast.values()).slice(0, 7));
+        forecastData.push(...Array.from(dailyForecast.values()).slice(0, 7));
 
-          weatherData = {
-            temperature: Math.round(current.main.temp),
-            feels_like: Math.round(current.main.feels_like),
-            humidity: current.main.humidity,
-            weather_condition: current.weather[0].description,
-            wind_speed: Math.round(current.wind.speed * 3.6), // Convert m/s to km/h
-            wind_direction: current.wind.deg,
-            uv_index: 0, // Not available in free tier
-            precipitation: current.rain?.['1h'] || current.snow?.['1h'] || 0,
-            temp_min: Math.round(current.main.temp_min),
-            temp_max: Math.round(current.main.temp_max),
-            latitude: locationData.latitude,
-            longitude: locationData.longitude,
-            city: locationData.city,
-            forecast_data: forecastData,
-            source: 'openweathermap',
-            // Add distance info if showing nearest town
-            ...(locationData.distanceToNearestTown && {
-              distanceToNearestTown: locationData.distanceToNearestTown,
-              nearestTown: locationData.nearestTown
-            })
-          };
+        weatherData = {
+          temperature: Math.round(current.main.temp),
+          feels_like: Math.round(current.main.feels_like),
+          humidity: current.main.humidity,
+          weather_condition: current.weather[0].description,
+          wind_speed: Math.round(current.wind.speed * 3.6), // Convert m/s to km/h
+          wind_direction: current.wind.deg,
+          uv_index: 0, // Not available in free tier
+          precipitation: current.rain?.['1h'] || current.snow?.['1h'] || 0,
+          temp_min: Math.round(current.main.temp_min),
+          temp_max: Math.round(current.main.temp_max),
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          city: locationData.city,
+          forecast_data: forecastData,
+          source: 'openweathermap',
+          // Add distance info if showing nearest town
+          ...(locationData.distanceToNearestTown && {
+            distanceToNearestTown: locationData.distanceToNearestTown,
+            nearestTown: locationData.nearestTown
+          })
+        };
 
-          console.log('OpenWeatherMap data retrieved successfully');
-        }
+        console.log('OpenWeatherMap data retrieved successfully');
       } catch (error: any) {
         console.log('OpenWeatherMap failed after retries:', error.message);
         await logError('weather_fetch_failed', {
