@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import dashboardBg from "@/assets/dashboard_bg.jpg";
+import DisasterAnimations from "./DisasterAnimations";
 
 interface DashboardProps {
   userLocation: LocationData;
@@ -203,6 +204,17 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
     >
       {/* Semi-transparent overlay */}
       <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+      
+      {/* Floating disaster animations */}
+      {weatherData && (
+        <DisasterAnimations
+          weatherCondition={weatherData.description}
+          precipitation={weatherData.precipitation}
+          temperature={weatherData.temperature}
+          windSpeed={weatherData.windSpeed}
+        />
+      )}
+      
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-primary/20 relative">
         <div className="container mx-auto px-4 py-4">
@@ -254,10 +266,35 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-8 relative z-10">
-        {/* Weather Stats with Error Handling */}
-        {weatherData && (
-          <WeatherStats weatherData={weatherData} />
-        )}
+          {/* Weather Stats with Error Handling */}
+          {weatherData && !weatherData.description.includes('Unavailable') && (
+            <WeatherStats weatherData={weatherData} />
+          )}
+          
+          {weatherData?.description.includes('Unavailable') && (
+            <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+              <CardContent className="flex items-center gap-3 p-6">
+                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-800 dark:text-amber-200">Weather Service Degraded</h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                    Weather data is temporarily unavailable. Showing cached information. 
+                    {weatherData.source === 'fallback' && ' Please check your internet connection.'}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchData}
+                  disabled={isLoading || !isOnline}
+                  className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         
         {!weatherData && !isLoading && (
           <Card className="bg-destructive/10 border-destructive/20">

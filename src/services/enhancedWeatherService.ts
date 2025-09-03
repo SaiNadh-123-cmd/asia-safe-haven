@@ -18,6 +18,7 @@ export interface WeatherData {
   warnings: string[];
   safetyLevel: 'safe' | 'caution' | 'danger';
   forecast?: ForecastData[];
+  source?: string; // Add source property for tracking data origin
 }
 
 export interface ForecastData {
@@ -180,16 +181,20 @@ class EnhancedWeatherService {
 
       // Try weather edge function first (secure API key usage)
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
         const response = await supabase.functions.invoke('weather', {
           body: {
             latitude: location.latitude,
             longitude: location.longitude,
-            city: location.city
+            city: location.city,
+            userId: user?.id
           }
         });
 
         if (response.data && !response.error) {
-          weatherData = this.transformEdgeFunctionData(response.data, location);
+          const actualData = response.data.data || response.data; // Handle nested data structure
+          weatherData = this.transformEdgeFunctionData(actualData, location);
         }
       } catch (error) {
         console.warn('Weather edge function failed, trying Open-Meteo');
@@ -221,23 +226,38 @@ class EnhancedWeatherService {
 
   // Transform weather edge function response to WeatherData
   private transformEdgeFunctionData(data: any, location: LocationData): WeatherData {
+    // Handle forecast data transformation
+    const forecastData: ForecastData[] = [];
+    if (data.forecast_data && Array.isArray(data.forecast_data)) {
+      data.forecast_data.forEach((item: any) => {
+        forecastData.push({
+          date: item.date,
+          tempMax: item.tempMax || item.temp_max || 30,
+          tempMin: item.tempMin || item.temp_min || 20,
+          condition: item.condition || 'Clear',
+          precipitation: item.precipitation || 0
+        });
+      });
+    }
+
     return {
       temperature: Math.round(data.temperature || data.temp || 25),
       feelsLike: Math.round(data.feels_like || data.temperature || 25),
       humidity: data.humidity || 60,
-      description: data.description || data.weather_main || 'Clear',
+      description: data.weather_condition || data.description || data.weather_main || 'Clear',
       windSpeed: Math.round(data.wind_speed || 5),
       windDirection: data.wind_direction || 0,
       uvIndex: data.uv_index || 0,
       precipitation: data.precipitation || data.rain || 0,
       tempMin: Math.round(data.temp_min || data.temperature - 3),
       tempMax: Math.round(data.temp_max || data.temperature + 3),
-      city: location.city,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      city: data.city || location.city,
+      latitude: data.latitude || location.latitude,
+      longitude: data.longitude || location.longitude,
       warnings: data.warnings || [],
       safetyLevel: this.determineSafetyLevel(data),
-      forecast: data.forecast || []
+      forecast: forecastData,
+      source: data.source || 'edge-function'
     };
   }
 
@@ -280,7 +300,8 @@ class EnhancedWeatherService {
       longitude: location.longitude,
       warnings: this.analyzeOpenMeteoConditions(current, daily),
       safetyLevel: this.calculateOpenMeteoSafetyLevel(current),
-      forecast: forecastData
+      forecast: forecastData,
+      source: 'open-meteo'
     };
   }
 
@@ -332,7 +353,8 @@ class EnhancedWeatherService {
         longitude: parseFloat(cached.longitude?.toString() || '0'),
         warnings: [],
         safetyLevel: 'safe',
-        forecast: Array.isArray(cached.forecast_data) ? cached.forecast_data as unknown as ForecastData[] : []
+        forecast: Array.isArray(cached.forecast_data) ? cached.forecast_data as unknown as ForecastData[] : [],
+        source: 'cache'
       };
     } catch (error) {
       console.error('Cache retrieval error:', error);
@@ -490,7 +512,7 @@ class EnhancedWeatherService {
       temperature: 28,
       feelsLike: 32,
       humidity: 65,
-      description: 'Partly Cloudy',
+      description: 'Data Unavailable - Using Fallback',
       windSpeed: 8,
       windDirection: 180,
       uvIndex: 6,
@@ -502,7 +524,8 @@ class EnhancedWeatherService {
       longitude: location.longitude,
       warnings: ['Weather data temporarily unavailable'],
       safetyLevel: 'safe',
-      forecast: []
+      forecast: [],
+      source: 'fallback'
     };
   }
 }

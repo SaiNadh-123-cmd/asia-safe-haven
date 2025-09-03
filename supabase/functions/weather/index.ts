@@ -210,7 +210,7 @@ serve(async (req) => {
   }
 
   try {
-    const { latitude, longitude, city } = await req.json();
+    const { latitude, longitude, city, userId } = await req.json();
 
     console.log(`Fetching weather for: ${city} (${latitude}, ${longitude})`);
 
@@ -230,8 +230,8 @@ serve(async (req) => {
       .from('weather_cache')
       .select('*')
       .gte('expires_at', new Date().toISOString())
-      .eq('latitude', parseFloat(latitude.toFixed(6)))
-      .eq('longitude', parseFloat(longitude.toFixed(6)))
+      .eq('latitude', parseFloat(latitude.toFixed(2)))
+      .eq('longitude', parseFloat(longitude.toFixed(2)))
       .order('cached_at', { ascending: false })
       .limit(1);
 
@@ -423,9 +423,10 @@ serve(async (req) => {
       await supabase
         .from('weather_cache')
         .insert({
-          latitude: parseFloat(locationData.latitude.toFixed(6)),
-          longitude: parseFloat(locationData.longitude.toFixed(6)),
+          latitude: parseFloat(locationData.latitude.toFixed(2)),
+          longitude: parseFloat(locationData.longitude.toFixed(2)),
           city: locationData.city,
+          user_id: userId,
           ...weatherData
         });
       console.log('Weather data cached successfully');

@@ -104,6 +104,7 @@ export type Database = {
           temp_max: number | null
           temp_min: number | null
           temperature: number | null
+          user_id: string | null
           uv_index: number | null
           weather_condition: string | null
           wind_direction: number | null
@@ -123,6 +124,7 @@ export type Database = {
           temp_max?: number | null
           temp_min?: number | null
           temperature?: number | null
+          user_id?: string | null
           uv_index?: number | null
           weather_condition?: string | null
           wind_direction?: number | null
@@ -142,6 +144,7 @@ export type Database = {
           temp_max?: number | null
           temp_min?: number | null
           temperature?: number | null
+          user_id?: string | null
           uv_index?: number | null
           weather_condition?: string | null
           wind_direction?: number | null
