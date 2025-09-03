@@ -34,31 +34,33 @@ const DisasterAnimations: React.FC<DisasterAnimationsProps> = ({
   const [disasterType, setDisasterType] = useState<string>('');
 
   useEffect(() => {
-    // Determine disaster type based on weather conditions
+    // Determine disaster type based on weather conditions with enhanced detection
     let newDisasterType = '';
     
-    if (precipitation > 50 || weatherCondition.toLowerCase().includes('rain') || weatherCondition.toLowerCase().includes('storm')) {
+    if (precipitation > 10 || weatherCondition.toLowerCase().includes('rain') || weatherCondition.toLowerCase().includes('drizzle')) {
       newDisasterType = 'flood';
-    } else if (temperature > 40 || weatherCondition.toLowerCase().includes('clear') && temperature > 35) {
-      newDisasterType = 'drought';
-    } else if (windSpeed > 60 || weatherCondition.toLowerCase().includes('thunder') || weatherCondition.toLowerCase().includes('storm')) {
+    } else if (windSpeed > 25 || weatherCondition.toLowerCase().includes('thunder') || weatherCondition.toLowerCase().includes('storm')) {
       newDisasterType = 'storm';
-    } else if (temperature > 38 && precipitation < 5) {
+    } else if (temperature > 35 || (weatherCondition.toLowerCase().includes('clear') && temperature > 30)) {
       newDisasterType = 'wildfire';
+    } else if (temperature > 30 && precipitation < 2 && windSpeed < 10) {
+      newDisasterType = 'drought';
     }
 
     setDisasterType(newDisasterType);
 
-    // Generate particles based on disaster type
+    // Generate continuous particles based on disaster type
     if (newDisasterType) {
       const newParticles: AnimationParticle[] = [];
-      const particleCount = newDisasterType === 'storm' ? 6 : 8;
+      const particleCount = newDisasterType === 'storm' ? 8 : 12; // More particles for continuous effect
       
       let animationData;
       switch (newDisasterType) {
         case 'flood':
+          animationData = rainAnimation;
+          break;
         case 'storm':
-          animationData = newDisasterType === 'storm' ? stormAnimation : rainAnimation;
+          animationData = stormAnimation;
           break;
         case 'wildfire':
           animationData = fireAnimation;
@@ -75,8 +77,8 @@ const DisasterAnimations: React.FC<DisasterAnimationsProps> = ({
           id: i,
           x: Math.random() * 100,
           y: Math.random() * 100,
-          delay: Math.random() * 3,
-          duration: 4 + Math.random() * 3,
+          delay: Math.random() * 4, // Staggered start times for continuous flow
+          duration: 6 + Math.random() * 4, // Longer duration for smoother animation
           animation: animationData,
         });
       }
@@ -104,22 +106,26 @@ const DisasterAnimations: React.FC<DisasterAnimationsProps> = ({
             }}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ 
-              opacity: [0, 0.8, 0.8, 0],
-              scale: [0, 1, 1, 0.3],
-              y: disasterType === 'flood' ? [0, 150] : 
-                 disasterType === 'storm' ? [0, 100] :
-                 disasterType === 'wildfire' ? [0, -80] : [0, 50],
-              x: disasterType === 'storm' ? [0, Math.random() * 40 - 20] : 
-                 disasterType === 'drought' ? [0, Math.random() * 60 - 30] : 0,
+              opacity: [0, 0.6, 0.8, 0.6, 0], // Smooth opacity transitions
+              scale: [0, 1, 1, 1, 0.2],
+              y: disasterType === 'flood' ? [0, 200] : 
+                 disasterType === 'storm' ? [0, 120] :
+                 disasterType === 'wildfire' ? [0, -100] : [0, 80],
+              x: disasterType === 'storm' ? [0, Math.random() * 50 - 25] : 
+                 disasterType === 'drought' ? [0, Math.random() * 80 - 40] : 
+                 disasterType === 'flood' ? [0, Math.random() * 20 - 10] : 0,
+              rotate: disasterType === 'storm' ? [0, 360] : 
+                     disasterType === 'drought' ? [0, 180] : 0,
             }}
             transition={{
               duration: particle.duration,
               delay: particle.delay,
               repeat: Infinity,
-              ease: "easeInOut",
+              ease: "linear", // Smooth continuous motion
+              repeatType: "loop",
             }}
           >
-            <div className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5">
+            <div className="w-2 h-2 md:w-3 md:h-3 lg:w-4 lg:h-4">
               <Lottie
                 animationData={particle.animation}
                 loop={true}
@@ -127,10 +133,11 @@ const DisasterAnimations: React.FC<DisasterAnimationsProps> = ({
                 style={{
                   width: '100%',
                   height: '100%',
-                  filter: disasterType === 'flood' ? 'hue-rotate(200deg) brightness(0.9)' : 
-                         disasterType === 'storm' ? 'hue-rotate(180deg) brightness(0.8)' :
-                         disasterType === 'wildfire' ? 'hue-rotate(20deg) brightness(1.3)' :
-                         disasterType === 'drought' ? 'hue-rotate(40deg) brightness(1.1)' : 'none',
+                  opacity: 0.7, // Slightly transparent to not obstruct content
+                  filter: disasterType === 'flood' ? 'hue-rotate(200deg) brightness(0.9) saturate(1.2)' : 
+                         disasterType === 'storm' ? 'hue-rotate(180deg) brightness(0.8) contrast(1.2)' :
+                         disasterType === 'wildfire' ? 'hue-rotate(20deg) brightness(1.3) saturate(1.5)' :
+                         disasterType === 'drought' ? 'hue-rotate(40deg) brightness(1.1) sepia(0.3)' : 'none',
                 }}
               />
             </div>

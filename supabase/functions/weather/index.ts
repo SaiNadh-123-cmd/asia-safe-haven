@@ -155,8 +155,8 @@ async function retryApiCall(apiCall: () => Promise<Response>, maxRetries: number
         return res;
       });
       
-      // Check for rate limit (429) or server errors (500, 502, 503)
-      if (response.status === 429 || response.status >= 500) {
+      // Check for rate limit (429), timeout (408), or server errors (500, 502, 503)
+      if (response.status === 408 || response.status === 429 || response.status >= 500) {
         throw new Error(`API returned status ${response.status}`);
       }
       
@@ -260,6 +260,8 @@ serve(async (req) => {
         if (currentResponse.ok && forecastResponse.ok) {
           const current = await currentResponse.json();
           const forecast = await forecastResponse.json();
+          
+          console.log(`Weather data fetched for ${locationData.city}: ${current.main.temp}°C, ${current.weather[0].description}`);
 
           // Process 7-day forecast
           const forecastData = [];

@@ -266,57 +266,34 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-8 relative z-10">
-          {/* Weather Stats with Error Handling */}
-          {weatherData && !weatherData.description.includes('Unavailable') && (
-            <WeatherStats weatherData={weatherData} />
-          )}
-          
-          {weatherData?.description.includes('Unavailable') && (
-            <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
-              <CardContent className="flex items-center gap-3 p-6">
-                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-amber-800 dark:text-amber-200">Weather Service Degraded</h3>
-                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                    Weather data is temporarily unavailable. Showing cached information. 
-                    {weatherData.source === 'fallback' && ' Please check your internet connection.'}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchData}
-                  disabled={isLoading || !isOnline}
-                  className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        
-        {!weatherData && !isLoading && (
-          <Card className="bg-destructive/10 border-destructive/20">
-            <CardContent className="flex items-center gap-3 p-6">
-              <AlertCircle className="h-6 w-6 text-destructive" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-destructive">Weather Data Unavailable</h3>
+        {/* Weather Stats with Enhanced Error Handling */}
+        {!weatherData ? (
+          <Card className="p-6 bg-muted/20 border-muted/40">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <p className="text-sm text-muted-foreground">Loading weather data...</p>
+            </div>
+          </Card>
+        ) : weatherData?.source === 'fallback' || weatherData?.description?.includes('Unavailable') ? (
+          <Card className="p-6 bg-destructive/10 border-destructive/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Weather Data Unavailable</h3>
                 <p className="text-sm text-muted-foreground">
-                  Unable to fetch weather information. Retrying...
+                  {weatherData?.description?.includes('Unavailable') ? weatherData.description : 'Unable to fetch current weather data. Please try again.'}
                 </p>
               </div>
-              <Button
+              <Button 
+                onClick={() => window.location.reload()} 
                 variant="outline"
                 size="sm"
-                onClick={fetchData}
-                disabled={isLoading || !isOnline}
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 Retry
               </Button>
-            </CardContent>
+            </div>
           </Card>
+        ) : (
+          <WeatherStats weatherData={weatherData} />
         )}
 
         {/* Safety Status */}

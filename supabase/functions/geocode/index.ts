@@ -7,6 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Remove duplicate functions and clean up the geocode edge function
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -14,17 +15,7 @@ const supabase = createClient(
 
 const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHERMAP_API_KEY');
 
-// Major Indian cities with coordinates for fallback
-const cityDatabase = {
-  'Delhi': { lat: 28.6139, lon: 77.2090, id: 42182 },
-  'Mumbai': { lat: 19.0760, lon: 72.8777, id: 43003 },
-  'Bangalore': { lat: 12.9716, lon: 77.5946, id: 43296 },
-  'Chennai': { lat: 13.0827, lon: 80.2707, id: 43279 },
-  'Kolkata': { lat: 22.5726, lon: 88.3639, id: 42809 },
-  'Hyderabad': { lat: 17.3850, lon: 78.4867, id: 43128 },
-};
-
-// Haversine distance calculation
+// Haversine distance calculation for accuracy verification
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in kilometers
   const dLat = toRadians(lat2 - lat1);
@@ -40,6 +31,16 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
+
+// Major Indian cities with coordinates for fallback
+const cityDatabase = {
+  'Delhi': { lat: 28.6139, lon: 77.2090, id: 42182 },
+  'Mumbai': { lat: 19.0760, lon: 72.8777, id: 43003 },
+  'Bangalore': { lat: 12.9716, lon: 77.5946, id: 43296 },
+  'Chennai': { lat: 13.0827, lon: 80.2707, id: 43279 },
+  'Kolkata': { lat: 22.5726, lon: 88.3639, id: 42809 },
+  'Hyderabad': { lat: 17.3850, lon: 78.4867, id: 43128 },
+};
 
 // Find nearest IMD-supported city
 function findNearestIMDCity(lat: number, lon: number): { name: string; distance: number; id: number } {

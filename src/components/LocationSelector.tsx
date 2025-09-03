@@ -77,14 +77,19 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
           },
           {
             enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 300000 // 5 minutes
+            timeout: 10000, // 10 second timeout
+            maximumAge: 60000 // 1 minute cache
           }
         );
       });
 
-      const { latitude, longitude } = position.coords;
-      console.log('Geolocation successful:', latitude, longitude);
+      const { latitude, longitude, accuracy } = position.coords;
+      console.log('Geolocation successful:', latitude, longitude, 'accuracy:', accuracy, 'meters');
+      
+      // Check if accuracy is within acceptable range (1-2km preferred, max 10km)
+      if (accuracy && accuracy > 10000) { // 10km in meters
+        throw new Error(`Location accuracy is ${Math.round(accuracy/1000)}km, which exceeds 10km limit. Please try again or select manually.`);
+      }
       
       // Use the new geocode edge function for better timeout handling
       const { supabase } = await import('@/integrations/supabase/client');
@@ -99,15 +104,18 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
       if (response.data?.success && response.data?.data) {
         const locationData = response.data.data;
         
-        // Show exact location or nearest town with distance
+        // Show exact location or nearest town with distance (but within 10km limit)
         let displayMessage = '';
         
-        if (locationData.distanceToNearestTown && locationData.nearestTown) {
+        if (locationData.distanceToNearestTown && locationData.nearestTown && locationData.distanceToNearestTown <= 10) {
           displayMessage = `📍 Nearest: ${locationData.nearestTown} (${Math.round(locationData.distanceToNearestTown)}km away)`;
-          console.log(`Using nearest town: ${locationData.nearestTown} (${Math.round(locationData.distanceToNearestTown)}km from your exact location)`);
-        } else {
+          console.log(`Using nearest town: ${locationData.nearestTown} (${Math.round(locationData.distanceToNearestTown)}km from your location)`);
+        } else if (locationData.accuracy === 'exact') {
           displayMessage = `📍 Exact: ${locationData.city}`;
           console.log(`Using exact location: ${locationData.city}`);
+        } else {
+          displayMessage = `📍 ${locationData.city}`;
+          console.log(`Using location: ${locationData.city} (within 10km)`);
         }
         
         if (response.data.warning) {
