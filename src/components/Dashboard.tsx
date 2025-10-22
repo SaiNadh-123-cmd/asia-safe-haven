@@ -20,8 +20,10 @@ import {
   Bell,
   Wifi,
   WifiOff,
-  AlertCircle
+  AlertCircle,
+  Map
 } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import dashboardBg from "@/assets/dashboard_bg.jpg";
@@ -33,6 +35,7 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) => {
+  const navigate = useNavigate();
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [alerts, setAlerts] = useState<DisasterAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
