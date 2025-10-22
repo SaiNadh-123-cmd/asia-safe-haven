@@ -9,6 +9,8 @@ const resources = {
       'location.search': 'Search for your city or village',
       'location.placeholder': 'Type city name, village, or area...',
       'location.retry': 'Unable to find location. Try a nearby city?',
+      'location.fetchError': 'Unable to fetch location suggestions. Try again.',
+      'location.processError': 'Unable to process location. Try again.',
       
       // Safety Maps
       'safetyMaps.title': 'Download Safety Maps',
@@ -17,8 +19,12 @@ const resources = {
       'safetyMaps.download': 'Download Safety Map for',
       'safetyMaps.downloading': 'Downloading...',
       'safetyMaps.success': 'Safety map downloaded successfully!',
+      'safetyMaps.downloadSuccess': 'Safety map for {{location}} ({{disasterType}}) downloaded!',
       'safetyMaps.noData': 'No specific safety features found',
       'safetyMaps.error': 'Failed to download safety map. Please try again.',
+      'safetyMaps.downloadError': 'Failed to download {{disasterType}} map for {{location}}. Try again?',
+      'safetyMaps.storageError': 'Storage quota exceeded. Delete old maps to continue.',
+      'safetyMaps.mapTooLarge': 'Map data too large. Try a smaller area.',
       'safetyMaps.yourMaps': 'Your Downloaded Maps',
       'safetyMaps.noMapsYet': 'No Safety Maps Yet',
       'safetyMaps.firstMap': 'Download your first safety map',
@@ -56,6 +62,8 @@ const resources = {
       'location.search': 'अपना शहर या गाँव खोजें',
       'location.placeholder': 'शहर, गाँव या क्षेत्र का नाम लिखें...',
       'location.retry': 'स्थान नहीं मिला। पास का शहर आज़माएं?',
+      'location.fetchError': 'स्थान सुझाव प्राप्त करने में असमर्थ। पुनः प्रयास करें।',
+      'location.processError': 'स्थान संसाधित करने में असमर्थ। पुनः प्रयास करें।',
       
       // Safety Maps
       'safetyMaps.title': 'सुरक्षा मानचित्र डाउनलोड करें',
@@ -64,8 +72,12 @@ const resources = {
       'safetyMaps.download': 'के लिए सुरक्षा मानचित्र डाउनलोड करें',
       'safetyMaps.downloading': 'डाउनलोड हो रहा है...',
       'safetyMaps.success': 'सुरक्षा मानचित्र सफलतापूर्वक डाउनलोड हुआ!',
+      'safetyMaps.downloadSuccess': '{{location}} के लिए सुरक्षा मानचित्र ({{disasterType}}) डाउनलोड हुआ!',
       'safetyMaps.noData': 'कोई विशिष्ट सुरक्षा सुविधाएं नहीं मिलीं',
       'safetyMaps.error': 'सुरक्षा मानचित्र डाउनलोड करने में विफल। कृपया पुनः प्रयास करें।',
+      'safetyMaps.downloadError': '{{location}} के लिए {{disasterType}} मानचित्र डाउनलोड विफल। पुनः प्रयास करें?',
+      'safetyMaps.storageError': 'स्टोरेज सीमा पार हो गई। जारी रखने के लिए पुराने मानचित्र हटाएं।',
+      'safetyMaps.mapTooLarge': 'मानचित्र डेटा बहुत बड़ा है। छोटा क्षेत्र आज़माएं।',
       'safetyMaps.yourMaps': 'आपके डाउनलोड किए गए मानचित्र',
       'safetyMaps.noMapsYet': 'अभी तक कोई सुरक्षा मानचित्र नहीं',
       'safetyMaps.firstMap': 'अपना पहला सुरक्षा मानचित्र डाउनलोड करें',

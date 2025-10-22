@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { MapPin, Loader2 } from 'lucide-react';
 import { fetchNominatimSuggestions } from '@/services/safetyMapService';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 interface LocationInputProps {
   onLocationSelect: (location: {
@@ -21,33 +23,47 @@ interface LocationInputProps {
 
 export const LocationInput = ({
   onLocationSelect,
-  label = 'Search for your city or village',
-  placeholder = 'Type city name, village, or area...',
+  label,
+  placeholder,
   initialValue = ''
 }: LocationInputProps) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Use translations or fallback to defaults
+  const labelText = label || t('location.search');
+  const placeholderText = placeholder || t('location.placeholder');
 
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (query.length < 2) {
         setSuggestions([]);
+        setError(null);
         return;
       }
 
       setIsLoading(true);
+      setError(null);
       try {
         const results = await fetchNominatimSuggestions(query);
         setSuggestions(results);
         setShowSuggestions(true);
-      } catch (error) {
+        
+        if (results.length === 0) {
+          setError(t('location.retry'));
+        }
+      } catch (error: any) {
         console.error('Failed to fetch suggestions:', error);
         setSuggestions([]);
+        setError(error.message || t('location.retry'));
+        toast.error(error.message || t('location.retry'));
       } finally {
         setIsLoading(false);
       }
@@ -55,7 +71,7 @@ export const LocationInput = ({
 
     const debounce = setTimeout(fetchSuggestions, 500);
     return () => clearTimeout(debounce);
-  }, [query]);
+  }, [query, t]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -109,7 +125,7 @@ export const LocationInput = ({
   return (
     <div className="relative w-full">
       <Label htmlFor="location-input" className="text-base font-medium mb-2">
-        {label}
+        {labelText}
       </Label>
       <div className="relative">
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -121,7 +137,7 @@ export const LocationInput = ({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-          placeholder={placeholder}
+          placeholder={placeholderText}
           className="pl-10 pr-10"
           aria-label="Location search input"
           aria-autocomplete="list"
@@ -132,6 +148,10 @@ export const LocationInput = ({
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </div>
+      
+      {error && suggestions.length === 0 && !isLoading && (
+        <p className="text-sm text-destructive mt-2">{error}</p>
+      )}
 
       <AnimatePresence>
         {showSuggestions && suggestions.length > 0 && (

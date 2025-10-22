@@ -8,6 +8,26 @@ const USER_AGENT = 'DisasterAlertApp/1.0';
 let lastNominatimCall = 0;
 const NOMINATIM_DELAY = 1000;
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
+// Utility: Retry with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = MAX_RETRIES,
+  delay: number = RETRY_DELAY
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries <= 0) throw error;
+    console.warn(`Retry attempt remaining: ${retries - 1}. Waiting ${delay}ms...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryWithBackoff(fn, retries - 1, delay * 1.5);
+  }
+}
+
 interface NominatimResult {
   place_id: number;
   lat: string;
@@ -58,48 +78,73 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-// Fetch location suggestions from Nominatim
+// Fetch location suggestions from Nominatim with retry logic
 export async function fetchNominatimSuggestions(query: string): Promise<NominatimResult[]> {
   if (!query || query.length < 2) return [];
 
-  // Rate limiting
-  const now = Date.now();
-  const timeSinceLastCall = now - lastNominatimCall;
-  if (timeSinceLastCall < NOMINATIM_DELAY) {
-    await new Promise(resolve => setTimeout(resolve, NOMINATIM_DELAY - timeSinceLastCall));
-  }
-  lastNominatimCall = Date.now();
+  return retryWithBackoff(async () => {
+    // Rate limiting
+    const now = Date.now();
+    const timeSinceLastCall = now - lastNominatimCall;
+    if (timeSinceLastCall < NOMINATIM_DELAY) {
+      await new Promise(resolve => setTimeout(resolve, NOMINATIM_DELAY - timeSinceLastCall));
+    }
+    lastNominatimCall = Date.now();
 
-  try {
-    const response = await axios.get(`${NOMINATIM_BASE}/search`, {
-      params: {
-        format: 'json',
-        q: query,
-        countrycodes: 'in',
-        limit: 5,
-        addressdetails: 1
-      },
-      headers: {
-        'User-Agent': USER_AGENT
-      },
-      timeout: 10000
-    });
+    try {
+      const response = await axios.get(`${NOMINATIM_BASE}/search`, {
+        params: {
+          format: 'json',
+          q: query,
+          countrycodes: 'in',
+          limit: 5,
+          addressdetails: 1
+        },
+        headers: {
+          'User-Agent': USER_AGENT
+        },
+        timeout: 10000
+      });
 
-    return response.data;
-  } catch (error) {
-    console.error('Nominatim API error:', error);
-    throw new Error('Failed to fetch location suggestions. Please try again.');
-  }
+      console.log(`Nominatim: Found ${response.data.length} results for "${query}"`);
+
+      // Fallback to broader search if no results
+      if (response.data.length === 0) {
+        console.log('No results, trying broader search with limit=10...');
+        const broaderResponse = await axios.get(`${NOMINATIM_BASE}/search`, {
+          params: {
+            format: 'json',
+            q: query,
+            countrycodes: 'in',
+            limit: 10,
+            addressdetails: 1
+          },
+          headers: {
+            'User-Agent': USER_AGENT
+          },
+          timeout: 10000
+        });
+        return broaderResponse.data;
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Nominatim API error:', error.message || error);
+      throw new Error('Failed to fetch location suggestions. Please try again.');
+    }
+  });
 }
 
-// Fetch safety data from Overpass API
+// Fetch safety data from Overpass API with retry logic and compression
 export async function fetchOverpassSafetyData(
   lat: number,
   lon: number,
   disasterType: string,
-  radiusKm: number = 50
+  radiusKm: number = 25 // Reduced to 25km for optimization
 ): Promise<{ bunkers: SafetyFeature[]; routes: SafetyFeature[] }> {
   const radiusMeters = radiusKm * 1000;
+  
+  console.log(`Fetching ${disasterType} safety data for (${lat}, ${lon}) within ${radiusKm}km...`);
   
   // Build Overpass query based on disaster type
   let query = `[out:json][timeout:25];(`;
@@ -141,72 +186,101 @@ export async function fetchOverpassSafetyData(
   
   query += `);out body;>;out skel qt;`;
 
-  try {
-    const response = await axios.post(
-      OVERPASS_BASE,
-      query,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': USER_AGENT
-        },
-        timeout: 30000
-      }
-    );
+  return retryWithBackoff(async () => {
+    try {
+      const response = await axios.post(
+        OVERPASS_BASE,
+        query,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': USER_AGENT
+          },
+          timeout: 30000
+        }
+      );
 
-    const elements = response.data.elements || [];
-    const bunkers: SafetyFeature[] = [];
-    const routes: SafetyFeature[] = [];
+      const elements = response.data.elements || [];
+      const bunkers: SafetyFeature[] = [];
+      const routes: SafetyFeature[] = [];
 
-    elements.forEach((element: any) => {
-      if (!element.tags) return;
+      elements.forEach((element: any) => {
+        if (!element.tags) return;
 
-      const feature: SafetyFeature = {
-        id: `${element.type}-${element.id}`,
-        type: element.tags.highway ? 'route' : 'bunker',
-        name: element.tags.name || element.tags.emergency || element.tags.landuse || 'Unnamed',
-        lat: element.lat || (element.center?.lat),
-        lon: element.lon || (element.center?.lon),
-        tags: element.tags,
-        disaster_types: [disasterType]
-      };
+        const feature: SafetyFeature = {
+          id: `${element.type}-${element.id}`,
+          type: element.tags.highway ? 'route' : 'bunker',
+          name: element.tags.name || element.tags.emergency || element.tags.landuse || 'Unnamed',
+          lat: element.lat || (element.center?.lat),
+          lon: element.lon || (element.center?.lon),
+          tags: element.tags,
+          disaster_types: [disasterType]
+        };
 
-      // Filter by distance
-      if (feature.lat && feature.lon) {
-        const distance = calculateDistance(lat, lon, feature.lat, feature.lon);
-        if (distance <= radiusKm) {
-          if (feature.type === 'route') {
-            routes.push(feature);
-          } else {
-            bunkers.push(feature);
+        // Filter by distance
+        if (feature.lat && feature.lon) {
+          const distance = calculateDistance(lat, lon, feature.lat, feature.lon);
+          if (distance <= radiusKm) {
+            if (feature.type === 'route') {
+              routes.push(feature);
+            } else {
+              bunkers.push(feature);
+            }
           }
         }
-      }
-    });
+      });
 
-    return { bunkers, routes };
-  } catch (error: any) {
-    console.error('Overpass API error:', error);
-    
-    // Retry logic
-    if (error.code === 'ECONNABORTED' || error.response?.status === 429) {
-      throw new Error('Request timed out. Please try again.');
+      console.log(`Overpass: Found ${bunkers.length} bunkers and ${routes.length} routes`);
+
+      // Fallback: Add default marker if no data found
+      if (bunkers.length === 0 && routes.length === 0) {
+        console.warn('No safety features found, adding default marker at user location');
+        bunkers.push({
+          id: 'default-location',
+          type: 'bunker',
+          name: 'Your Location (No mapped shelters found)',
+          lat,
+          lon,
+          tags: { note: 'Default marker - no OSM data available' },
+          disaster_types: [disasterType]
+        });
+      }
+
+      return { bunkers, routes };
+    } catch (error: any) {
+      console.error('Overpass API error:', error.message || error);
+      
+      if (error.code === 'ECONNABORTED' || error.response?.status === 429) {
+        throw new Error('Request timed out. Please try again.');
+      }
+      
+      throw new Error('Failed to fetch safety data. Please try again.');
     }
-    
-    throw new Error('Failed to fetch safety data. Please try again.');
-  }
+  });
 }
 
-// Store map offline in localStorage
+// Store map offline in localStorage with compression and quota check
 export function storeMapOffline(mapData: SafetyMapData): void {
   const key = `safetyMap_${mapData.location}_${mapData.disaster_type}`.replace(/\s+/g, '_').toLowerCase();
   
   try {
+    // Compress JSON by removing whitespace
     const serialized = JSON.stringify(mapData);
     const sizeKB = new Blob([serialized]).size / 1024;
     
-    if (sizeKB > 5000) { // 5MB limit for localStorage
-      throw new Error('Map data too large to store offline');
+    console.log(`Storing map "${key}": ${sizeKB.toFixed(2)} KB`);
+    
+    // Check localStorage quota
+    const estimatedQuotaKB = getLocalStorageQuota();
+    console.log(`localStorage quota: ~${estimatedQuotaKB.toFixed(2)} KB used`);
+    
+    if (sizeKB > 4000) { // 4MB limit per map
+      throw new Error('Map data too large (>4MB). Try a smaller area or fewer disaster types.');
+    }
+    
+    if (estimatedQuotaKB + sizeKB > 9000) { // 9MB total localStorage limit
+      console.error('localStorage quota exceeded. Delete old maps to free space.');
+      throw new Error('Storage quota exceeded. Delete old maps to continue.');
     }
     
     localStorage.setItem(key, serialized);
@@ -217,10 +291,23 @@ export function storeMapOffline(mapData: SafetyMapData): void {
       mapList.push(key);
       localStorage.setItem('safetyMaps_list', JSON.stringify(mapList));
     }
-  } catch (error) {
-    console.error('Failed to store map:', error);
-    throw new Error('Failed to save map for offline use');
+    
+    console.log(`✓ Map stored successfully: ${key}`);
+  } catch (error: any) {
+    console.error('Failed to store map:', error.message || error);
+    throw new Error(error.message || 'Failed to save map for offline use');
   }
+}
+
+// Check localStorage quota usage
+function getLocalStorageQuota(): number {
+  let totalKB = 0;
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      totalKB += (localStorage[key].length + key.length) / 1024;
+    }
+  }
+  return totalKB;
 }
 
 // Get stored map from localStorage

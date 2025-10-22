@@ -13,6 +13,7 @@ import {
 } from '@/services/safetyMapService';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const disasterInfo: Record<string, { icon: string; color: string; description: string }> = {
   flood: {
@@ -43,6 +44,7 @@ interface SafetyMapDownloaderProps {
 }
 
 export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProps) => {
+  const { t } = useTranslation();
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [selectedDisaster, setSelectedDisaster] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -69,12 +71,12 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
         setDownloadProgress(prev => Math.min(prev + 10, 90));
       }, 300);
 
-      // Fetch safety data
+      // Fetch safety data with 25km radius (optimized)
       const safetyData = await fetchOverpassSafetyData(
         selectedLocation.lat,
         selectedLocation.lon,
         selectedDisaster,
-        50 // 50km radius
+        25 // 25km radius for better performance
       );
 
       clearInterval(progressInterval);
@@ -82,9 +84,7 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
 
       // Check if we found any data
       if (safetyData.bunkers.length === 0 && safetyData.routes.length === 0) {
-        toast.warning(
-          `No specific safety features found for ${selectedDisaster} in ${selectedLocation.city}. This area may not have mapped shelters yet.`
-        );
+        toast.warning(t('safetyMaps.noData'));
       }
 
       // Store map data
@@ -97,7 +97,7 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
         metadata: {
           downloadedAt: new Date().toISOString(),
           size: JSON.stringify(safetyData).length,
-          radius: 50
+          radius: 25
         }
       };
 
@@ -106,7 +106,10 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
       setDownloadProgress(100);
 
       toast.success(
-        `Safety map downloaded! Found ${safetyData.bunkers.length} shelters and ${safetyData.routes.length} routes.`
+        t('safetyMaps.downloadSuccess', {
+          location: selectedLocation.city,
+          disasterType: selectedDisaster
+        }) + ` ${safetyData.bunkers.length} ${t('map.shelters').toLowerCase()}, ${safetyData.routes.length} ${t('map.routes').toLowerCase()}.`
       );
 
       // Show preview
@@ -116,7 +119,32 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
       }, 500);
     } catch (error: any) {
       console.error('Download error:', error);
-      toast.error(error.message || 'Failed to download safety map. Please try again.');
+      
+      // Show specific error messages with retry option
+      if (error.message.includes('quota')) {
+        toast.error(t('safetyMaps.storageError'), {
+          action: {
+            label: t('common.retry'),
+            onClick: () => handleDownloadMap()
+          }
+        });
+      } else if (error.message.includes('too large')) {
+        toast.error(t('safetyMaps.mapTooLarge'));
+      } else {
+        toast.error(
+          t('safetyMaps.downloadError', {
+            location: selectedLocation.city,
+            disasterType: selectedDisaster
+          }),
+          {
+            action: {
+              label: t('common.retry'),
+              onClick: () => handleDownloadMap()
+            }
+          }
+        );
+      }
+      
       setIsDownloading(false);
       setDownloadProgress(0);
     }
@@ -128,10 +156,10 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
-            Download Safety Maps
+            {t('safetyMaps.title')}
           </CardTitle>
           <CardDescription>
-            Get offline access to disaster shelters and evacuation routes in your area
+            {t('safetyMaps.description')}
           </CardDescription>
         </CardHeader>
 
@@ -163,7 +191,7 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
               {/* Disaster Type Selection */}
               <div className="space-y-3">
                 <Label className="text-base font-medium">
-                  Select disaster type for your area
+                  {t('safetyMaps.selectDisaster')}
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {recommendedDisasters.map(disaster => {
@@ -179,10 +207,10 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
                             ? 'border-primary bg-primary/10'
                             : 'border-border hover:border-primary/50'
                         }`}
-                      >
+                        >
                         <div className="text-3xl mb-2">{info.icon}</div>
-                        <h4 className="font-semibold capitalize mb-1">{disaster}</h4>
-                        <p className="text-xs text-muted-foreground">{info.description}</p>
+                        <h4 className="font-semibold capitalize mb-1">{t(`disaster.${disaster}`)}</h4>
+                        <p className="text-xs text-muted-foreground">{t(`disaster.${disaster}.description`)}</p>
                         {recommendedDisasters.indexOf(disaster) < 2 && (
                           <Badge className="absolute top-2 right-2 text-xs" variant="secondary">
                             Recommended
@@ -208,9 +236,9 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
                         <div className="flex-1">
                           <p className="text-sm font-medium mb-1">What's included:</p>
                           <ul className="text-sm text-muted-foreground space-y-1">
-                            <li>• Safety shelters and bunkers within 50km</li>
+                            <li>• Safety shelters and bunkers within 25km</li>
                             <li>• Evacuation routes and safe zones</li>
-                            <li>• Offline access (approx. 5-10MB)</li>
+                            <li>• Offline access (approx. 2-4MB)</li>
                             <li>• GPS coordinates for navigation</li>
                           </ul>
                         </div>
@@ -238,12 +266,12 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
                     {isDownloading ? (
                       <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Downloading...
+                        {t('safetyMaps.downloading')}
                       </>
                     ) : (
                       <>
                         <Download className="h-5 w-5 mr-2" />
-                        Download Safety Map for {selectedLocation.city}
+                        {t('safetyMaps.download')} {selectedLocation.city}
                       </>
                     )}
                   </Button>
