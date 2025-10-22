@@ -24,6 +24,7 @@ import {
   Map
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { LanguageSelector } from './LanguageSelector';
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import dashboardBg from "@/assets/dashboard_bg.jpg";
@@ -244,6 +245,8 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
             </div>
             
             <div className="flex items-center gap-2">
+              <LanguageSelector />
+              
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 {isOnline ? (
                   <Wifi className="h-3 w-3 text-safe" />
@@ -254,6 +257,16 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
               </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/safety-maps')}
+                className="hidden md:flex"
+              >
+                <Map className="h-4 w-4 mr-2" />
+                Safety Maps
+              </Button>
               
               <Button 
                 variant="ghost" 
@@ -355,7 +368,41 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
 
         <Separator />
 
-        {/* Disaster Education Grid */}
+        {/* Safety Maps CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <Map className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">Download Safety Maps</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Get offline access to disaster shelters and evacuation routes in your area. 
+                      Essential for emergencies when internet may be unavailable.
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  size="lg"
+                  onClick={() => navigate('/safety-maps')}
+                  className="whitespace-nowrap"
+                >
+                  <Map className="h-4 w-4 mr-2" />
+                  View Safety Maps
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <Separator />
         <DisasterGrid onDisasterSelect={handleDisasterSelect} />
 
         {/* Quick Stats */}

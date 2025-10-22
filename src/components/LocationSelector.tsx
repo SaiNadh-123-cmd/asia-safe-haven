@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Label } from "@/components/ui/label";
-import { MapPin, Navigation, Globe } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
 import { LocationData } from "@/services/enhancedWeatherService";
 import { supabase } from "@/integrations/supabase/client";
 import interfaceBg from "@/assets/interface_bg.jpg";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface LocationSelectorProps {
   onLocationSelect: (location: LocationData) => void;
@@ -190,6 +191,11 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
       
       {/* Content container */}
       <div className="relative z-10 w-full max-w-2xl">
+        {/* Language Selector at top right */}
+        <div className="absolute top-4 right-4 z-10">
+          <LanguageSelector />
+        </div>
+        
         <motion.div
           initial={{ y: 20 }}
           animate={{ y: 0 }}
@@ -306,10 +312,15 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}
-              className="text-center text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg"
+              className="text-center text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg space-y-2"
             >
-              🔒 Your location data is encrypted and used only for providing relevant disaster alerts. 
-              We never share your information with third parties.
+              <p>
+                🔒 Your location data is encrypted and used only for providing relevant disaster alerts. 
+                We never share your information with third parties.
+              </p>
+              <p className="text-primary/80 font-medium">
+                💡 Tip: After setup, download Safety Maps for offline access to shelters and evacuation routes!
+              </p>
             </motion.div>
           </CardContent>
         </Card>
