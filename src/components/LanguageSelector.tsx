@@ -10,7 +10,11 @@ import { useTranslation } from 'react-i18next';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'hi', name: 'हिंदी', flag: '🇮🇳' }
+  { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
+  { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' },
+  { code: 'te', name: 'తెలుగు', flag: '🇮🇳' },
+  { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' },
+  { code: 'ml', name: 'മലയാളം', flag: '🇮🇳' }
 ];
 
 export const LanguageSelector = () => {

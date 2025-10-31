@@ -5,14 +5,11 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
-      // Location Input
       'location.search': 'Search for your city or village',
       'location.placeholder': 'Type city name, village, or area...',
       'location.retry': 'Unable to find location. Try a nearby city?',
       'location.fetchError': 'Unable to fetch location suggestions. Try again.',
       'location.processError': 'Unable to process location. Try again.',
-      
-      // Safety Maps
       'safetyMaps.title': 'Download Safety Maps',
       'safetyMaps.description': 'Get offline access to disaster shelters and evacuation routes in your area',
       'safetyMaps.selectDisaster': 'Select disaster type for your area',
@@ -28,16 +25,13 @@ const resources = {
       'safetyMaps.yourMaps': 'Your Downloaded Maps',
       'safetyMaps.noMapsYet': 'No Safety Maps Yet',
       'safetyMaps.firstMap': 'Download your first safety map',
-      
-      // Disasters
+      'safetyMaps.emptyMap': 'No bunkers found. Stay safe!',
       'disaster.flood': 'Flood',
       'disaster.earthquake': 'Earthquake',
       'disaster.cyclone': 'Cyclone',
       'disaster.flood.description': 'High-ground shelters and safe evacuation routes',
       'disaster.earthquake.description': 'Open areas and earthquake-safe buildings',
       'disaster.cyclone.description': 'Reinforced shelters and storm-safe routes',
-      
-      // Map Features
       'map.shelters': 'Shelters',
       'map.routes': 'Routes',
       'map.radius': 'Radius',
@@ -45,8 +39,16 @@ const resources = {
       'map.downloaded': 'Downloaded',
       'map.view': 'View',
       'map.delete': 'Delete',
-      
-      // Common
+      'dashboard.recent': 'Recent Disasters',
+      'dashboard.precautions': 'Precautions for {{city}}',
+      'dashboard.noDisasters': 'No recent disasters reported',
+      'dashboard.loading': 'Loading disasters...',
+      'precautions.title': 'Climate & Safety Precautions',
+      'precautions.weather': 'Current weather conditions',
+      'precautions.loading': 'Analyzing conditions...',
+      'precautions.error': 'Unable to fetch precautions',
+      'precautions.rain': 'Heavy rain expected. Avoid low-lying areas.',
+      'precautions.earthquake': 'Earthquake risk high. Identify safe spots now.',
       'common.loading': 'Loading...',
       'common.error': 'Error',
       'common.retry': 'Retry',
@@ -58,14 +60,11 @@ const resources = {
   },
   hi: {
     translation: {
-      // Location Input
       'location.search': 'अपना शहर या गाँव खोजें',
       'location.placeholder': 'शहर, गाँव या क्षेत्र का नाम लिखें...',
       'location.retry': 'स्थान नहीं मिला। पास का शहर आज़माएं?',
       'location.fetchError': 'स्थान सुझाव प्राप्त करने में असमर्थ। पुनः प्रयास करें।',
       'location.processError': 'स्थान संसाधित करने में असमर्थ। पुनः प्रयास करें।',
-      
-      // Safety Maps
       'safetyMaps.title': 'सुरक्षा मानचित्र डाउनलोड करें',
       'safetyMaps.description': 'अपने क्षेत्र में आपदा आश्रय और निकासी मार्गों तक ऑफ़लाइन पहुंच प्राप्त करें',
       'safetyMaps.selectDisaster': 'अपने क्षेत्र के लिए आपदा प्रकार चुनें',
@@ -81,16 +80,13 @@ const resources = {
       'safetyMaps.yourMaps': 'आपके डाउनलोड किए गए मानचित्र',
       'safetyMaps.noMapsYet': 'अभी तक कोई सुरक्षा मानचित्र नहीं',
       'safetyMaps.firstMap': 'अपना पहला सुरक्षा मानचित्र डाउनलोड करें',
-      
-      // Disasters
+      'safetyMaps.emptyMap': 'कोई बंकर नहीं मिला। सुरक्षित रहें!',
       'disaster.flood': 'बाढ़',
       'disaster.earthquake': 'भूकंप',
       'disaster.cyclone': 'चक्रवात',
       'disaster.flood.description': 'ऊंची जमीन के आश्रय और सुरक्षित निकासी मार्ग',
       'disaster.earthquake.description': 'खुले क्षेत्र और भूकंप-सुरक्षित इमारतें',
       'disaster.cyclone.description': 'मजबूत आश्रय और तूफान-सुरक्षित मार्ग',
-      
-      // Map Features
       'map.shelters': 'आश्रय',
       'map.routes': 'मार्ग',
       'map.radius': 'त्रिज्या',
@@ -98,8 +94,16 @@ const resources = {
       'map.downloaded': 'डाउनलोड किया',
       'map.view': 'देखें',
       'map.delete': 'हटाएं',
-      
-      // Common
+      'dashboard.recent': 'हाल की आपदाएं',
+      'dashboard.precautions': '{{city}} के लिए सावधानियां',
+      'dashboard.noDisasters': 'कोई हाल की आपदा नहीं',
+      'dashboard.loading': 'आपदाएं लोड हो रही हैं...',
+      'precautions.title': 'जलवायु और सुरक्षा सावधानियां',
+      'precautions.weather': 'वर्तमान मौसम की स्थिति',
+      'precautions.loading': 'स्थितियों का विश्लेषण...',
+      'precautions.error': 'सावधानियां प्राप्त करने में असमर्थ',
+      'precautions.rain': 'भारी बारिश की उम्मीद। निचले क्षेत्रों से बचें।',
+      'precautions.earthquake': 'भूकंप का खतरा अधिक। अभी सुरक्षित स्थान पहचानें।',
       'common.loading': 'लोड हो रहा है...',
       'common.error': 'त्रुटि',
       'common.retry': 'पुनः प्रयास करें',
@@ -107,6 +111,88 @@ const resources = {
       'common.back': 'डैशबोर्ड पर वापस जाएं',
       'common.online': 'ऑनलाइन',
       'common.offline': 'ऑफ़लाइन',
+    }
+  },
+  ta: {
+    translation: {
+      'location.search': 'உங்கள் நகரம் அல்லது கிராமத்தைத் தேடுங்கள்',
+      'location.placeholder': 'நகரம், கிராமம் அல்லது பகுதியை தட்டச்சு செய்க...',
+      'safetyMaps.title': 'பாதுகாப்பு வரைபடங்களை பதிவிறக்கவும்',
+      'safetyMaps.download': 'பாதுகாப்பு வரைபடத்தை பதிவிறக்கவும்',
+      'safetyMaps.downloading': 'பதிவிறக்கம் செய்யப்படுகிறது...',
+      'safetyMaps.downloadSuccess': '{{location}} க்கான பாதுகாப்பு வரைபடம் ({{disasterType}}) பதிவிறக்கப்பட்டது!',
+      'safetyMaps.emptyMap': 'பதுங்கு குழிகள் எதுவும் இல்லை. பாதுகாப்பாக இருங்கள்!',
+      'disaster.flood': 'வெள்ளம்',
+      'disaster.earthquake': 'நிலநடுக்கம்',
+      'disaster.cyclone': 'சூறாவளி',
+      'dashboard.recent': 'சமீபத்திய பேரழிவுகள்',
+      'dashboard.precautions': '{{city}} க்கான முன்னெச்சரிக்கைகள்',
+      'precautions.title': 'காலநிலை மற்றும் பாதுகாப்பு முன்னெச்சரிக்கைகள்',
+      'common.loading': 'ஏற்றுகிறது...',
+      'common.error': 'பிழை',
+      'common.retry': 'மீண்டும் முயற்சிக்கவும்',
+    }
+  },
+  te: {
+    translation: {
+      'location.search': 'మీ నగరం లేదా గ్రామం కోసం వెతకండి',
+      'location.placeholder': 'నగరం, గ్రామం లేదా ప్రాంతం పేరు టైప్ చేయండి...',
+      'safetyMaps.title': 'భద్రతా మ్యాప్‌లను డౌన్‌లోడ్ చేయండి',
+      'safetyMaps.download': 'భద్రతా మ్యాప్‌ను డౌన్‌లోడ్ చేయండి',
+      'safetyMaps.downloading': 'డౌన్‌లోడ్ అవుతోంది...',
+      'safetyMaps.downloadSuccess': '{{location}} కోసం భద్రతా మ్యాప్ ({{disasterType}}) డౌన్‌లోడ్ అయ్యింది!',
+      'safetyMaps.emptyMap': 'బంకర్లు కనుగొనబడలేదు. సురక్షితంగా ఉండండి!',
+      'disaster.flood': 'వరద',
+      'disaster.earthquake': 'భూకంపం',
+      'disaster.cyclone': 'తుఫాను',
+      'dashboard.recent': 'ఇటీవలి విపత్తులు',
+      'dashboard.precautions': '{{city}} కోసం జాగ్రత్తలు',
+      'precautions.title': 'వాతావరణ మరియు భద్రతా జాగ్రత్తలు',
+      'precautions.rain': 'భారీ వర్షం అవకాశం. లోతైన ప్రాంతాలకు దూరంగా ఉండండి.',
+      'precautions.earthquake': 'భూకంప ప్రమాదం ఎక్కువ. ఇప్పుడే సురక్షిత ప్రదేశాలను గుర్తించండి.',
+      'common.loading': 'లోడ్ అవుతోంది...',
+      'common.error': 'లోపం',
+      'common.retry': 'మళ్లీ ప్రయత్నించండి',
+    }
+  },
+  kn: {
+    translation: {
+      'location.search': 'ನಿಮ್ಮ ನಗರ ಅಥವಾ ಗ್ರಾಮವನ್ನು ಹುಡುಕಿ',
+      'location.placeholder': 'ನಗರ, ಗ್ರಾಮ ಅಥವಾ ಪ್ರದೇಶದ ಹೆಸರನ್ನು ಟೈಪ್ ಮಾಡಿ...',
+      'safetyMaps.title': 'ಸುರಕ್ಷತಾ ನಕ್ಷೆಗಳನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
+      'safetyMaps.download': 'ಸುರಕ್ಷತಾ ನಕ್ಷೆಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
+      'safetyMaps.downloading': 'ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
+      'safetyMaps.downloadSuccess': '{{location}} ಗಾಗಿ ಸುರಕ್ಷತಾ ನಕ್ಷೆ ({{disasterType}}) ಡೌನ್‌ಲೋಡ್ ಆಗಿದೆ!',
+      'safetyMaps.emptyMap': 'ಬಂಕರ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ. ಸುರಕ್ಷಿತವಾಗಿರಿ!',
+      'disaster.flood': 'ಪ್ರವಾಹ',
+      'disaster.earthquake': 'ಭೂಕಂಪ',
+      'disaster.cyclone': 'ಚಂಡಮಾರುತ',
+      'dashboard.recent': 'ಇತ್ತೀಚಿನ ವಿಪತ್ತುಗಳು',
+      'dashboard.precautions': '{{city}} ಗಾಗಿ ಮುನ್ನೆಚ್ಚರಿಕೆಗಳು',
+      'precautions.title': 'ಹವಾಮಾನ ಮತ್ತು ಸುರಕ್ಷತಾ ಮುನ್ನೆಚ್ಚರಿಕೆಗಳು',
+      'common.loading': 'ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
+      'common.error': 'ದೋಷ',
+      'common.retry': 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    }
+  },
+  ml: {
+    translation: {
+      'location.search': 'നിങ്ങളുടെ നഗരമോ ഗ്രാമമോ തിരയുക',
+      'location.placeholder': 'നഗരം, ഗ്രാമം അല്ലെങ്കിൽ പ്രദേശം ടൈപ്പ് ചെയ്യുക...',
+      'safetyMaps.title': 'സുരക്ഷാ ഭൂപടങ്ങൾ ഡൗൺലോഡ് ചെയ്യുക',
+      'safetyMaps.download': 'സുരക്ഷാ ഭൂപടം ഡൗൺലോഡ് ചെയ്യുക',
+      'safetyMaps.downloading': 'ഡൗൺലോഡ് ചെയ്യുന്നു...',
+      'safetyMaps.downloadSuccess': '{{location}} നുള്ള സുരക്ഷാ ഭൂപടം ({{disasterType}}) ഡൗൺലോഡ് ചെയ്തു!',
+      'safetyMaps.emptyMap': 'ബങ്കറുകളൊന്നും കണ്ടെത്തിയില്ല. സുരക്ഷിതരായിരിക്കുക!',
+      'disaster.flood': 'വെള്ളപ്പൊക്കം',
+      'disaster.earthquake': 'ഭൂകമ്പം',
+      'disaster.cyclone': 'ചുഴലിക്കാറ്റ്',
+      'dashboard.recent': 'സമീപകാല ദുരന്തങ്ങൾ',
+      'dashboard.precautions': '{{city}} നുള്ള മുൻകരുതലുകൾ',
+      'precautions.title': 'കാലാവസ്ഥയും സുരക്ഷാ മുൻകരുതലുകളും',
+      'common.loading': 'ലോഡുചെയ്യുന്നു...',
+      'common.error': 'പിശക്',
+      'common.retry': 'വീണ്ടും ശ്രമിക്കുക',
     }
   }
 };

@@ -11,6 +11,8 @@ import { PrecautionsModal } from "./PrecautionsModal";
 import { StoriesModal } from "./StoriesModal";
 import { DisasterDetailsModal } from "./DisasterDetailsModal";
 import { DisasterType } from "./DisasterIcon";
+import { RecentDisasters } from "./RecentDisasters";
+import { ClimatePrecautions } from "./ClimatePrecautions";
 import { enhancedWeatherService, WeatherData, DisasterAlert, LocationData } from "@/services/enhancedWeatherService";
 import { aiService } from "@/services/aiService";
 import { 
@@ -365,6 +367,17 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
             </CardContent>
           </Card>
         )}
+
+        <Separator />
+
+        {/* 2-Column Dashboard: Recent Disasters + AI Precautions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <RecentDisasters />
+          <ClimatePrecautions 
+            location={{ lat: userLocation.latitude, lon: userLocation.longitude }}
+            cityName={userLocation.city}
+          />
+        </div>
 
         <Separator />
 
