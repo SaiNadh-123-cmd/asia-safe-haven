@@ -26,15 +26,15 @@ export default function SafetyMaps() {
     loadStoredMaps();
   }, []);
 
-  const loadStoredMaps = () => {
-    const maps = getAllStoredMaps();
+  const loadStoredMaps = async () => {
+    const maps = await getAllStoredMaps();
     setStoredMaps(maps);
   };
 
-  const handleDeleteMap = (location: string, disasterType: string) => {
+  const handleDeleteMap = async (location: string, disasterType: string) => {
     try {
-      deleteStoredMap(location, disasterType);
-      loadStoredMaps();
+      await deleteStoredMap(location, disasterType);
+      await loadStoredMaps();
       toast.success('Safety map deleted');
     } catch (error) {
       toast.error('Failed to delete map');

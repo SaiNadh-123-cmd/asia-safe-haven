@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { storeMapInDB, getMapFromDB, deleteMapFromDB, getAllMapsFromDB, StoredMapData } from '@/lib/indexedDB';
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 const OVERPASS_BASE = 'https://overpass-api.de/api/interpreter';
@@ -259,110 +260,99 @@ export async function fetchOverpassSafetyData(
   });
 }
 
-// Store map offline in localStorage with compression and quota check
-export function storeMapOffline(mapData: SafetyMapData): void {
-  const key = `safetyMap_${mapData.location}_${mapData.disaster_type}`.replace(/\s+/g, '_').toLowerCase();
-  
+// Store map offline in IndexedDB (unlimited storage vs localStorage's 5MB)
+export async function storeMapOffline(mapData: SafetyMapData): Promise<void> {
   try {
-    // Compress JSON by removing whitespace
+    // Prepare data with proper format for IndexedDB
     const serialized = JSON.stringify(mapData);
-    const sizeKB = new Blob([serialized]).size / 1024;
+    const sizeBytes = new Blob([serialized]).size;
+    const sizeKB = sizeBytes / 1024;
     
-    console.log(`Storing map "${key}": ${sizeKB.toFixed(2)} KB`);
+    console.log(`Storing map "${mapData.location}": ${sizeKB.toFixed(2)} KB`);
     
-    // Check localStorage quota
-    const estimatedQuotaKB = getLocalStorageQuota();
-    console.log(`localStorage quota: ~${estimatedQuotaKB.toFixed(2)} KB used`);
-    
-    if (sizeKB > 4000) { // 4MB limit per map
-      throw new Error('Map data too large (>4MB). Try a smaller area or fewer disaster types.');
+    // Check if map is too large (>10MB warning, but IndexedDB can handle it)
+    if (sizeKB > 10000) {
+      console.warn('Map data is large (>10MB). Storage may take a moment...');
     }
     
-    if (estimatedQuotaKB + sizeKB > 9000) { // 9MB total localStorage limit
-      console.error('localStorage quota exceeded. Delete old maps to free space.');
-      throw new Error('Storage quota exceeded. Delete old maps to continue.');
-    }
+    // Convert to StoredMapData format for IndexedDB
+    const storedData: StoredMapData = {
+      location: mapData.location,
+      disasterType: mapData.disaster_type,
+      coordinates: mapData.coordinates,
+      features: [...mapData.bunkers, ...mapData.routes],
+      metadata: {
+        downloadedAt: mapData.metadata.downloadedAt,
+        size: sizeBytes,
+        radius: mapData.metadata.radius
+      }
+    };
     
-    localStorage.setItem(key, serialized);
-    
-    // Update map list
-    const mapList = getStoredMapsList();
-    if (!mapList.includes(key)) {
-      mapList.push(key);
-      localStorage.setItem('safetyMaps_list', JSON.stringify(mapList));
-    }
-    
-    console.log(`✓ Map stored successfully: ${key}`);
+    await storeMapInDB(mapData.location, mapData.disaster_type, storedData);
+    console.log(`✓ Map stored successfully in IndexedDB: ${mapData.location} (${mapData.disaster_type})`);
   } catch (error: any) {
     console.error('Failed to store map:', error.message || error);
     throw new Error(error.message || 'Failed to save map for offline use');
   }
 }
 
-// Check localStorage quota usage
-function getLocalStorageQuota(): number {
-  let totalKB = 0;
-  for (let key in localStorage) {
-    if (localStorage.hasOwnProperty(key)) {
-      totalKB += (localStorage[key].length + key.length) / 1024;
-    }
-  }
-  return totalKB;
-}
-
-// Get stored map from localStorage
-export function getStoredMap(location: string, disasterType: string): SafetyMapData | null {
-  const key = `safetyMap_${location}_${disasterType}`.replace(/\s+/g, '_').toLowerCase();
-  
+// Get stored map from IndexedDB
+export async function getStoredMap(location: string, disasterType: string): Promise<SafetyMapData | null> {
   try {
-    const stored = localStorage.getItem(key);
+    const stored = await getMapFromDB(location, disasterType);
     if (!stored) return null;
     
-    return JSON.parse(stored);
+    // Convert back to SafetyMapData format
+    const bunkers = stored.features.filter(f => f.type === 'bunker');
+    const routes = stored.features.filter(f => f.type === 'route');
+    
+    return {
+      location: stored.location,
+      coordinates: stored.coordinates,
+      disaster_type: stored.disasterType,
+      bunkers,
+      routes,
+      metadata: stored.metadata
+    };
   } catch (error) {
     console.error('Failed to retrieve map:', error);
     return null;
   }
 }
 
-// Get list of all stored maps
-export function getStoredMapsList(): string[] {
+// Get all stored maps with metadata
+export async function getAllStoredMaps(): Promise<SafetyMapData[]> {
   try {
-    const list = localStorage.getItem('safetyMaps_list');
-    return list ? JSON.parse(list) : [];
-  } catch {
+    const storedMaps = await getAllMapsFromDB();
+    
+    return storedMaps.map(stored => {
+      const bunkers = stored.features.filter(f => f.type === 'bunker');
+      const routes = stored.features.filter(f => f.type === 'route');
+      
+      return {
+        location: stored.location,
+        coordinates: stored.coordinates,
+        disaster_type: stored.disasterType,
+        bunkers,
+        routes,
+        metadata: stored.metadata
+      };
+    });
+  } catch (error) {
+    console.error('Failed to get all maps:', error);
     return [];
   }
 }
 
-// Get all stored maps with metadata
-export function getAllStoredMaps(): SafetyMapData[] {
-  const mapKeys = getStoredMapsList();
-  const maps: SafetyMapData[] = [];
-  
-  mapKeys.forEach(key => {
-    try {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        maps.push(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error(`Failed to parse map ${key}:`, error);
-    }
-  });
-  
-  return maps;
-}
-
-// Delete stored map
-export function deleteStoredMap(location: string, disasterType: string): void {
-  const key = `safetyMap_${location}_${disasterType}`.replace(/\s+/g, '_').toLowerCase();
-  
-  localStorage.removeItem(key);
-  
-  // Update map list
-  const mapList = getStoredMapsList().filter(k => k !== key);
-  localStorage.setItem('safetyMaps_list', JSON.stringify(mapList));
+// Delete stored map from IndexedDB
+export async function deleteStoredMap(location: string, disasterType: string): Promise<void> {
+  try {
+    await deleteMapFromDB(location, disasterType);
+    console.log(`✓ Map deleted: ${location} (${disasterType})`);
+  } catch (error) {
+    console.error('Failed to delete map:', error);
+    throw error;
+  }
 }
 
 // Get recommended disaster types based on location

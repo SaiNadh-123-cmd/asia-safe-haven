@@ -101,7 +101,7 @@ export const SafetyMapDownloader = ({ initialLocation }: SafetyMapDownloaderProp
         }
       };
 
-      storeMapOffline(mapDataToStore);
+      await storeMapOffline(mapDataToStore);
       setMapData(mapDataToStore);
       setDownloadProgress(100);
 
