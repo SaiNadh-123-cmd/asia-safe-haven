@@ -154,10 +154,9 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 
-  /* Glow effects for headings */
+  /* Headings without glow effects */
   h1, h2, h3, h4, h5, h6 {
-    text-shadow: var(--glow-text);
-    animation: glow-pulse 2s ease-in-out infinite alternate;
+    /* Removed text-shadow for better readability */
   }
 
   /* Shining rainbow text effect */
