@@ -240,7 +240,7 @@ export const SafetyMapViewer = ({ mapData, className = '' }: SafetyMapViewerProp
               {mapData.bunkers.length} shelters and {mapData.routes.length} evacuation routes within {mapData.metadata.radius}km
             </>
           ) : (
-            <span className="flex items-center gap-1 text-yellow-600">
+            <span className="flex items-center gap-1">
               <AlertCircle className="h-4 w-4" />
               No official safety data found. Showing your location only.
             </span>
@@ -252,18 +252,18 @@ export const SafetyMapViewer = ({ mapData, className = '' }: SafetyMapViewerProp
         {/* Map Statistics */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-green-500/10 rounded-lg p-3 text-center">
-            <Shield className="h-5 w-5 mx-auto mb-1 text-green-600" />
-            <p className="text-2xl font-bold text-green-600">{mapData.bunkers.length}</p>
+            <Shield className="h-5 w-5 mx-auto mb-1" />
+            <p className="text-2xl font-bold">{mapData.bunkers.length}</p>
             <p className="text-xs text-muted-foreground">Shelters</p>
           </div>
           <div className="bg-blue-500/10 rounded-lg p-3 text-center">
-            <Navigation className="h-5 w-5 mx-auto mb-1 text-blue-600" />
-            <p className="text-2xl font-bold text-blue-600">{mapData.routes.length}</p>
+            <Navigation className="h-5 w-5 mx-auto mb-1" />
+            <p className="text-2xl font-bold">{mapData.routes.length}</p>
             <p className="text-xs text-muted-foreground">Routes</p>
           </div>
           <div className="bg-purple-500/10 rounded-lg p-3 text-center">
-            <MapPin className="h-5 w-5 mx-auto mb-1 text-purple-600" />
-            <p className="text-2xl font-bold text-purple-600">{mapData.metadata.radius}km</p>
+            <MapPin className="h-5 w-5 mx-auto mb-1" />
+            <p className="text-2xl font-bold">{mapData.metadata.radius}km</p>
             <p className="text-xs text-muted-foreground">Radius</p>
           </div>
         </div>
@@ -313,8 +313,8 @@ export const SafetyMapViewer = ({ mapData, className = '' }: SafetyMapViewerProp
 
         {!hasData && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-sm">
-            <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">No Official Shelters Found</p>
-            <p className="text-yellow-700 dark:text-yellow-300">
+            <p className="font-medium mb-1">No Official Shelters Found</p>
+            <p className="text-muted-foreground">
               Stay indoors during alerts, move to higher ground for floods, or seek open areas for earthquakes.
             </p>
           </div>

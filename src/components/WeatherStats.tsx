@@ -31,7 +31,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
       return <CloudRain className="h-8 w-8 text-primary" />;
     }
     if (lowerCondition.includes('clear') || lowerCondition.includes('sunny')) {
-      return <Sun className="h-8 w-8 text-yellow-500" />;
+      return <Sun className="h-8 w-8" />;
     }
     if (lowerCondition.includes('cloud')) {
       return <Droplets className="h-8 w-8 text-gray-500" />;
@@ -95,7 +95,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
               <div className="text-sm text-muted-foreground mt-2">
                 {weatherData.city}
                 {showingNearestTown && (
-                  <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     Nearest town: {locationData.nearestTown} ({Math.round(locationData.distanceToNearestTown)}km away)
                   </div>
                 )}
@@ -109,7 +109,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
               whileHover={{ scale: 1.05 }}
               className="flex items-center gap-2 p-3 rounded-lg bg-background/50"
             >
-              <Thermometer className="h-5 w-5 text-red-500" />
+              <Thermometer className="h-5 w-5" />
               <div>
                 <div className="text-sm font-medium">{weatherData.tempMax}°C</div>
                 <div className="text-xs text-muted-foreground">High</div>
@@ -120,7 +120,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
               whileHover={{ scale: 1.05 }}
               className="flex items-center gap-2 p-3 rounded-lg bg-background/50"
             >
-              <Thermometer className="h-5 w-5 text-blue-500" />
+              <Thermometer className="h-5 w-5" />
               <div>
                 <div className="text-sm font-medium">{weatherData.tempMin}°C</div>
                 <div className="text-xs text-muted-foreground">Low</div>
@@ -131,7 +131,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
               whileHover={{ scale: 1.05 }}
               className="flex items-center gap-2 p-3 rounded-lg bg-background/50"
             >
-              <Droplets className="h-5 w-5 text-blue-400" />
+              <Droplets className="h-5 w-5" />
               <div>
                 <div className="text-sm font-medium">{weatherData.humidity}%</div>
                 <div className="text-xs text-muted-foreground">Humidity</div>
@@ -161,7 +161,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center gap-2 p-2 rounded-lg bg-background/30"
               >
-                <Sun className="h-4 w-4 text-orange-500" />
+                <Sun className="h-4 w-4" />
                 <div>
                   <div className="text-sm font-medium">UV {weatherData.uvIndex}</div>
                   <div className="text-xs text-muted-foreground">Index</div>
@@ -174,7 +174,7 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center gap-2 p-2 rounded-lg bg-background/30"
               >
-                <CloudRain className="h-4 w-4 text-blue-500" />
+                <CloudRain className="h-4 w-4" />
                 <div>
                   <div className="text-sm font-medium">{weatherData.precipitation}mm</div>
                   <div className="text-xs text-muted-foreground">Rain</div>
@@ -211,15 +211,15 @@ export const WeatherStats = ({ weatherData, className = '' }: WeatherStatsProps)
                       {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                     </div>
                     <div className="flex items-center gap-1 mb-1">
-                      <TrendingUp className="h-3 w-3 text-red-400" />
+                      <TrendingUp className="h-3 w-3" />
                       <span className="text-xs font-medium">{day.tempMax}°</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <TrendingDown className="h-3 w-3 text-blue-400" />
+                      <TrendingDown className="h-3 w-3" />
                       <span className="text-xs">{day.tempMin}°</span>
                     </div>
                     {day.precipitation > 0 && (
-                      <div className="text-xs text-blue-500 mt-1">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {day.precipitation}mm
                       </div>
                     )}

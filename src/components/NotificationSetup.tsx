@@ -143,7 +143,7 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
             >
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <CheckCircle className="h-16 w-16 mx-auto mb-4" />
             </motion.div>
             <h3 className="text-xl font-semibold mb-2">Notifications Enabled!</h3>
             <p className="text-muted-foreground">
@@ -189,7 +189,7 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
         <CardContent className="space-y-6">
           <div className="grid gap-4">
             <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <AlertTriangle className="h-5 w-5" />
               <div>
                 <p className="font-medium">Instant Disaster Alerts</p>
                 <p className="text-sm text-muted-foreground">Floods, storms, earthquakes, and more</p>
@@ -197,7 +197,7 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
             </div>
             
             <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-              <Bell className="h-5 w-5 text-blue-500" />
+              <Bell className="h-5 w-5" />
               <div>
                 <p className="font-medium">Weather Warnings</p>
                 <p className="text-sm text-muted-foreground">Heatwaves, cyclones, and severe weather</p>
@@ -205,7 +205,7 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
             </div>
             
             <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircle className="h-5 w-5" />
               <div>
                 <p className="font-medium">Safety Updates</p>
                 <p className="text-sm text-muted-foreground">Evacuation routes and emergency instructions</p>

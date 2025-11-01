@@ -89,13 +89,13 @@ export const RecentDisasters = () => {
     const iconClass = "w-5 h-5";
     switch (type.toLowerCase()) {
       case 'cyclone':
-        return <AlertTriangle className={`${iconClass} text-red-500`} />;
+        return <AlertTriangle className={iconClass} />;
       case 'flood':
-        return <AlertTriangle className={`${iconClass} text-blue-500`} />;
+        return <AlertTriangle className={iconClass} />;
       case 'earthquake':
-        return <AlertTriangle className={`${iconClass} text-orange-500`} />;
+        return <AlertTriangle className={iconClass} />;
       default:
-        return <AlertTriangle className={`${iconClass} text-yellow-500`} />;
+        return <AlertTriangle className={iconClass} />;
     }
   };
 

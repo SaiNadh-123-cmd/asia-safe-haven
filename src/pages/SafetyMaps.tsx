@@ -151,11 +151,11 @@ export default function SafetyMaps() {
                         {/* Stats */}
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="bg-green-500/10 rounded p-2 text-center">
-                            <p className="font-bold text-green-600">{map.bunkers.length}</p>
+                            <p className="font-bold">{map.bunkers.length}</p>
                             <p className="text-xs text-muted-foreground">Shelters</p>
                           </div>
                           <div className="bg-blue-500/10 rounded p-2 text-center">
-                            <p className="font-bold text-blue-600">{map.routes.length}</p>
+                            <p className="font-bold">{map.routes.length}</p>
                             <p className="text-xs text-muted-foreground">Routes</p>
                           </div>
                         </div>
