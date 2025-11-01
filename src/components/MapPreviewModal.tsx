@@ -198,13 +198,13 @@ export const MapPreviewModal = ({ isOpen, onClose, mapData }: MapPreviewModalPro
             <p className="text-sm font-medium mb-2">Map Legend:</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white">
+                <div className="w-6 h-6 bg-safe rounded-full flex items-center justify-center">
                   🛡️
                 </div>
                 <span>Safety Shelters</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+                <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-xs">
                   →
                 </div>
                 <span>Evacuation Routes</span>

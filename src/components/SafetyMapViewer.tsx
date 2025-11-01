@@ -282,19 +282,19 @@ export const SafetyMapViewer = ({ mapData, className = '' }: SafetyMapViewerProp
           <p className="text-sm font-medium mb-3">Map Legend:</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center text-white border-2 border-white shadow">
+              <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-border shadow">
                 📍
               </div>
               <span>Your Location</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white border-2 border-white shadow">
+              <div className="w-7 h-7 bg-safe rounded-full flex items-center justify-center border-2 border-border shadow">
                 🛡️
               </div>
               <span>Safety Shelters</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-white shadow text-xs">
+              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-border shadow text-xs">
                 →
               </div>
               <span>Evacuation Routes</span>

@@ -227,7 +227,7 @@ export const Dashboard = ({ userLocation, onLocationChange }: DashboardProps) =>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-lg bg-gradient-hero flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-white" />
+                <AlertCircle className="h-5 w-5" />
               </div>
               <div>
                 <h1 className="text-xl font-bold">DisasterAlert</h1>

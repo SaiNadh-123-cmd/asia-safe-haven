@@ -209,7 +209,7 @@ export const LocationSelector = ({ onLocationSelect }: LocationSelectorProps) =>
               transition={{ delay: 0.3, type: "spring" }}
               className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-hero flex items-center justify-center"
             >
-              <MapPin className="h-8 w-8 text-white" />
+              <MapPin className="h-8 w-8" />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10 }}

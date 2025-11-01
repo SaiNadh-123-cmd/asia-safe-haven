@@ -178,7 +178,7 @@ export const NotificationSetup = ({ onComplete }: NotificationSetupProps) => {
             transition={{ delay: 0.2, type: "spring" }}
             className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center"
           >
-            <Bell className="h-8 w-8 text-white" />
+            <Bell className="h-8 w-8" />
           </motion.div>
           <CardTitle className="text-2xl font-bold">Stay Safe with Disaster Alerts</CardTitle>
           <CardDescription className="text-base">
